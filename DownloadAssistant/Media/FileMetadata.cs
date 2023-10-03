@@ -1,26 +1,44 @@
-﻿using Microsoft.Win32;
-using System.Net.Http.Headers;
-using System.Runtime.InteropServices;
+﻿using System.Net.Http.Headers;
 using System.Text;
 
 namespace DownloadAssistant.Media
 {
     public class FileMetadata
     {
-        private HttpContentHeaders _headers;
-        private Uri _uri;
-        public FileMetadata(HttpContentHeaders headers, Uri uri) { _headers = headers; _uri = uri; }
+        private readonly HttpContentHeaders _headers;
+        private readonly Uri _uri;
 
-        public string GetFilename()
+        public string FileName { get; private set; } = string.Empty;
+        public string Extension { get; private set; } = string.Empty;
+        public FileMetadata(HttpContentHeaders headers, Uri uri)
         {
-            string fileName = _headers.ContentDisposition?.FileNameStar ?? string.Empty;
-            if (fileName == string.Empty)
-                fileName = RemoveInvalidFileNameChars(_uri.Segments.Last() ?? string.Empty);
-            if (fileName == string.Empty)
-                fileName = RemoveInvalidFileNameChars(Path.GetFileName(_uri.AbsoluteUri) ?? string.Empty);
-            if (fileName == string.Empty)
-                fileName = "requested_download_" + RemoveInvalidFileNameChars(_uri.Host);
-            return fileName;
+            _headers = headers;
+            _uri = uri;
+            SetFilename();
+            SetExtension();
+        }
+
+        /// <summary>
+        /// Set the extension of a request file
+        /// </summary>
+        public void SetExtension()
+        {
+            Extension = string.Empty;
+            if (_headers.ContentType?.MediaType != null)
+                Extension = MimeTypeMap.GetDefaultExtension(_headers.ContentType.MediaType);
+            if (Extension == string.Empty)
+                Extension = Path.GetExtension(_uri.AbsoluteUri);
+        }
+
+        private void SetFilename()
+        {
+            FileName = _headers.ContentDisposition?.FileNameStar ?? string.Empty;
+            if (FileName == string.Empty)
+                FileName = RemoveInvalidFileNameChars(_uri.Segments.Last() ?? string.Empty);
+            if (FileName == string.Empty)
+                FileName = RemoveInvalidFileNameChars(Path.GetFileName(_uri.AbsoluteUri) ?? string.Empty);
+            if (FileName == string.Empty)
+                FileName = "requested_download_" + RemoveInvalidFileNameChars(_uri.Host);
         }
 
         /// <summary>
@@ -35,73 +53,35 @@ namespace DownloadAssistant.Media
             string fileName = preSetFilename;
             if (fileName == string.Empty || fileName == "*" || fileName == "*.*")
             {
-                fileName = GetFilename();
-                fileName = fileName.Contains('.') ? fileName : fileName + GetExtension();
+                fileName = FileName;
+                fileName = fileName.Contains('.') ? fileName : fileName + Extension;
             }
-            else if (fileName.StartsWith("*"))
-                fileName = Path.GetFileNameWithoutExtension(GetFilename()) + fileName[1..];
-            else if (fileName.EndsWith(".*"))
-                fileName = fileName[..^2] + GetExtension();
+            else {
+                if (fileName.StartsWith("*"))
+                    fileName = Path.GetFileNameWithoutExtension(FileName) + fileName[1..];
+                else if (fileName.Contains(".*"))
+                    fileName = fileName.Replace(".*", Extension);
+                if (fileName.Contains("*"))
+                    fileName = fileName.Remove('*'); 
+            }
             return fileName;
         }
 
-        /// <summary>
-        /// Gets the Extension of a requerst
-        /// </summary>
-        /// <param name="headers"></param>
-        /// <param name="uri"></param>
-        /// <returns></returns>
-        public string GetExtension()
-        {
-            string ext = string.Empty;
-            if (_headers.ContentType?.MediaType != null)
-                ext = GetDefaultExtension(_headers.ContentType.MediaType);
-            if (ext == string.Empty)
-                ext = Path.GetExtension(_uri.AbsoluteUri);
-            return ext;
-        }
+
 
         /// <summary>
         /// Removes all invalid Characters for a filename out of a string
         /// </summary>
-        /// <param name="name">input filename</param>
+        /// <param name="input">input filename</param>
         /// <returns>Clreared filename</returns>
-        public static string RemoveInvalidFileNameChars(string name)
+        public static string RemoveInvalidFileNameChars(string input)
         {
-            StringBuilder fileBuilder = new(name);
+            StringBuilder fileBuilder = new(input);
             foreach (char c in Path.GetInvalidFileNameChars())
                 fileBuilder.Replace(c.ToString(), string.Empty);
             return fileBuilder.ToString();
         }
 
-        /// <summary>
-        /// Gets the default extension aof an mimeType
-        /// </summary>
-        /// <param name="mimeType"></param>
-        /// <returns>A Extension as string</returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="ObjectDisposedException"></exception>
-        /// <exception cref="SecurityException"></exception>
-        /// <exception cref="NotSupportedException"></exception>
-        /// <exception cref="IOException"></exception>
-        /// <exception cref="UnauthorizedAccessException"></exception>
-        public string GetDefaultExtension(string mimeType)
-        {
-            string result = string.Empty;
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                RegistryKey? key;
-                object? value;
-
-                key = Registry.ClassesRoot.OpenSubKey(@"MIME\Database\Content Type\" + mimeType, false);
-                value = key?.GetValue("Extension", null);
-                result = value?.ToString() ?? string.Empty;
-            }
-
-            if (result == string.Empty)
-                result = MimeTypeMap.GetExtension(mimeType, false);
-            return result;
-        }
     }
 }

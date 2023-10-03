@@ -1,7 +1,9 @@
 ﻿using DownloadAssistant.Base;
 using DownloadAssistant.Options;
+using DownloadAssistant.Utilities;
 using Requests;
 using Requests.Options;
+using System.Diagnostics;
 
 namespace DownloadAssistant.Request
 {
@@ -28,17 +30,17 @@ namespace DownloadAssistant.Request
         private RequestState _state = RequestState.Available;
 
         /// <summary>
-        /// Bytes that are written to the destination file
+        /// Bytes that are written to the temp file
         /// </summary>
-        public long BytesWritten { get; private set; } = 0;
+        public long BytesWritten => _chunkHandler.BytesWritten;
 
         /// <summary>
-        /// Bytes that are written to the temp or chunk file
+        /// Bytes that are downloaded
         /// </summary>
-        public long BytesDownloaded { get; private set; } = 0;
+        public long BytesDownloaded => _chunkHandler.BytesDownloaded;
 
         /// <summary>
-        /// <see cref="AggregateException"/> that contains the throwed Exeptions
+        /// <see cref="AggregateException"/> that contains the throwed exeptions
         /// </summary>
         public override AggregateException? Exception
         {
@@ -60,16 +62,11 @@ namespace DownloadAssistant.Request
             get
             {
                 if (IsChunked)
-                    return _progressCon.GetRequests().Sum(x => x.PartialContentLegth ?? 0);
+                    return _chunkHandler.Requests.Sum(x => x.PartialContentLegth ?? 0);
                 else
                     return ((GetRequest)_request).ContentLength;
             }
         }
-
-        private int _isCopying = 0;
-
-
-        private bool _infoFetched = false;
 
         /// <inheritdoc/>
         public override int AttemptCounter => _attemptCounter;
@@ -80,6 +77,8 @@ namespace DownloadAssistant.Request
         /// </summary>
         public bool IsChunked { get; private set; }
 
+        private ChunkHandler _chunkHandler = new();
+
         /// <summary>
         /// Path to the download file
         /// </summary>
@@ -88,18 +87,14 @@ namespace DownloadAssistant.Request
         /// <summary>
         /// Path to the temporary created file
         /// </summary>
-        public string TmpDestination { get; private set; } = string.Empty;
+        public string TempDestination { get; private set; } = string.Empty;
 
         /// <summary>
         /// Progress to get updates of the download process.
         /// </summary>
         public Progress<float> Progress => ((IProgressable)_request).Progress;
 
-        private readonly ProgressableContainer<GetRequest> _progressCon = new();
-        private List<GetRequest> _copied = new();
         private IRequest _request = null!;
-
-        private string _tempExt = ".part";
 
         /// <summary>
         /// Creates a <see cref="IRequest"/> that can download a file to a temp file
@@ -138,158 +133,101 @@ namespace DownloadAssistant.Request
 
         private void CreateRequest()
         {
-            GetRequestOptions options = Options.ToGetRequestOptions() with
-            {
-                InfosFetched = OnInfosFetched
-            };
+            GetRequestOptions options = Options.ToGetRequestOptions() with { InfosFetched = OnInfosFetched };
 
             if (IsChunked)
             {
-                _request = _progressCon;
-                _tempExt = "_chunk";
+                _chunkHandler = new ChunkHandler();
+                _request = _chunkHandler.RequestContainer;
+                
                 for (int i = 0; i < Options.Chunks; i++)
-                    _progressCon.Add(CreateChunk(i, options));
+                    _chunkHandler.Add(CreateChunk(i, options));
+                
+                return;
             }
-            else
-            {
-                options = options with
-                {
-                    Filename = $"{(string.IsNullOrWhiteSpace(Options.Filename) ? "*" : Options.Filename)}{_tempExt}",
-                };
-                options.RequestStarted += Options.RequestStarted;
-                options.RequestFailed += (message) => _attemptCounter++;
-                options.RequestCompleated += CopyOrMerge;
-                _request = new GetRequest(Url, options);
-            }
-        }
 
+            options = options with
+            {
+                Filename = $"{(string.IsNullOrWhiteSpace(Options.Filename) ? "*" : Options.Filename)}.part",
+            };
+            options.RequestStarted += Options.RequestStarted;
+            options.RequestFailed += (message) => _attemptCounter++;
+            options.RequestCompleated += MoveTemp;
+            _request = new GetRequest(Url, options);
+        }
 
         private GetRequest CreateChunk(int index, GetRequestOptions options)
         {
             options = options with
             {
                 Range = new LoadRange(new Index(index), Options.Chunks),
-                Filename = $"{(string.IsNullOrWhiteSpace(Options.Filename) ? "*" : Options.Filename)}.{1 + index}{_tempExt}"
+                Filename = $"{(string.IsNullOrWhiteSpace(Options.Filename) ? "*" : Options.Filename)}.{1 + index}_chunk"
             };
             if (index == 0)
                 options.RequestStarted += Options.RequestStarted;
 
             options.RequestFailed += (message) => _attemptCounter++;
-            options.RequestCompleated += CopyOrMerge;
+            options.RequestCompleated += MoveTemp;
             return new GetRequest(Url, options);
         }
 
         private void OnInfosFetched(GetRequest? request)
         {
-            if (request == null || _infoFetched)
+            if (request == null)
                 return;
-            _infoFetched = true;
 
-            Destination = Path.Combine(Options.DestinationPath, request!.Filename.Remove(request.Filename.LastIndexOf('.')));
-            TmpDestination = request.FilePath;
-            LoadBytesWritten();
+            
+            if (IsChunked)
+            {
+                _chunkHandler.SetInfos(request);
+                if (Destination == string.Empty)
+                {
+                    Destination = Path.Combine(Options.DestinationPath, request.ContentName);
+                    TempDestination = Path.Combine(Options.TempDestination, request.ContentName + ".part");
+                }
+                return;
+            }
+            Destination = Path.Combine(Options.DestinationPath, request.ContentName);
+            TempDestination = request.FilePath;
 
-            _progressCon.GetRequests().ToList().ForEach(x => x.SetContentLength(request.FullContentLegth!.Value));
 
-            PreAllocateFileLength(request.FullContentLegth!.Value);
             ExcludedExtensions(request.ContentExtension);
-        }
-
-        private void LoadBytesWritten()
-        {
-            throw new NotImplementedException();
         }
 
         private void ExcludedExtensions(string contentExtension)
         {
-            if (Options.ExcludedExtensions.Any(contentExtension.EndsWith))
+            if  (Options.ExcludedExtensions != null && !string.IsNullOrWhiteSpace(contentExtension) && Options.ExcludedExtensions.Any(contentExtension.EndsWith))
             {
                 AddException(new InvalidOperationException($"Content extension is invalid"));
                 Cancel();
+                _state = RequestState.Failed;
             }
         }
 
-        private void PreAllocateFileLength(long value)
-        {
-            if (!Options.PreAllocateFileLength)
-                return;
-            FileStream fileStream = File.Create(Destination);
-            fileStream.SetLength(value);
-            fileStream.Close();
-        }
-
-        private async void CopyOrMerge(GetRequest? getRequest)
+        private async void MoveTemp(GetRequest? getRequest)
         {
             if (getRequest == null)
                 return;
+            bool canMove = false;
 
             if (IsChunked)
             {
-                if (Options.MergeWhileProgress || _progressCon.GetRequests().All(request => request.State == RequestState.Compleated))
-                    await MergeChunks();
+                if (Options.MergeWhileProgress || _chunkHandler.Requests.All(request => request.State == RequestState.Compleated))
+                canMove = await _chunkHandler.StartMergeTo(TempDestination);
             }
             else
-            {
-                IOManager.Move(((GetRequest)_request).FilePath, Destination);
-                BytesWritten = BytesDownloaded;
-                ((IProgress<float>)Progress).Report(1f);
-                Options.RequestCompleated?.Invoke(Destination);
-            }
+                canMove = true;
+
+            if (canMove)
+                TempToDestination();
         }
 
-        /// <summary>
-        /// Merges all chunked parts of a file into one big file.
-        /// </summary>
-        /// <returns>A awaitable Task</returns>
-        public async Task MergeChunks()
+        private void TempToDestination()
         {
-            if (Interlocked.CompareExchange(ref _isCopying, 0, 1) == 1)//If is Copying
-                return;
-            IReadOnlyList<GetRequest> requests = _progressCon.GetRequests();
-            //Check if the fist part was downloaded
-            if (requests[0].State != RequestState.Compleated)
-            {
-                _isCopying = 0;
-                return;
-            }
-
-            //FileStream to merge the chunked files
-            FileStream? outputStream = null;
-            try
-            {
-                outputStream = new(Destination, FileMode.Open)
-                {
-                    Position = BytesWritten
-                };
-                for (int i = 0; i < requests.Count; i++)
-                {
-                    if (requests[i].State != RequestState.Compleated)
-                        break;
-                    if (_copied.Contains(requests[i]))
-                        continue;
-                    string path = requests[i].FilePath;
-                    if (!File.Exists(path))
-                        break;
-
-                    FileStream inputStream = File.OpenRead(path);
-                    await inputStream.CopyToAsync(outputStream);
-                    BytesWritten += inputStream.Length;
-                    await inputStream.FlushAsync();
-                    await inputStream.DisposeAsync();
-                    File.Delete(path);
-                    _copied.Add(requests[i]);
-                }
-            }
-            catch (Exception) { }
-            finally
-            {
-                if (outputStream != null)
-                {
-                    await outputStream.FlushAsync();
-                    await outputStream.DisposeAsync();
-                }
-                _isCopying = 0;
-            }
+            IOManager.Move(TempDestination, Destination);
+            ((IProgress<float>)Progress).Report(1f);
+            _state = RequestState.Compleated;
+            Options.RequestCompleated?.Invoke(Destination);
         }
 
 

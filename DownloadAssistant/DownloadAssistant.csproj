@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Shard.Requests" Version="1.0.0" />
+    <PackageReference Include="Shard.Requests" Version="1.0.1" />
   </ItemGroup>
 
   <ItemGroup>

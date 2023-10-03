@@ -1,5 +1,6 @@
 ﻿using DownloadAssistant.Base;
 using DownloadAssistant.Options;
+using DownloadAssistant.Utilities;
 using Requests;
 using Requests.Options;
 using System.Diagnostics;
@@ -170,7 +171,7 @@ namespace DownloadAssistant.Request
             Media.FileMetadata file = new(res.Content.Headers, _uri);
             Filename = file.BuildFilename(Options.Filename);
             ContentName = Path.GetFileNameWithoutExtension(Filename);
-            ContentExtension = file.GetExtension();
+            ContentExtension = file.Extension;
 
             SetFileInfo();
 

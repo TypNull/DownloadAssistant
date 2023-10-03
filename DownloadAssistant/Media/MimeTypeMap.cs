@@ -1,4 +1,7 @@
-﻿namespace DownloadAssistant.Media
+﻿using Microsoft.Win32;
+using System.Runtime.InteropServices;
+
+namespace DownloadAssistant.Media
 {
     /// <summary>
     /// class with huge Dictionary of MimeTypes and extensions
@@ -9,6 +12,36 @@
         private const string QuestionMark = "?";
         private const string DefaultMimeType = "application/octet-stream";
         private static readonly Lazy<IDictionary<string, string>> _mappings = new(BuildMappings);
+
+        /// <summary>
+        /// Gets the default extension aof an mimeType
+        /// </summary>
+        /// <param name="mimeType"></param>
+        /// <returns>A Extension as string</returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="SecurityException"></exception>
+        /// <exception cref="NotSupportedException"></exception>
+        /// <exception cref="IOException"></exception>
+        /// <exception cref="UnauthorizedAccessException"></exception>
+        public static string GetDefaultExtension(string mimeType)
+        {
+            string result = string.Empty;
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                RegistryKey? key;
+                object? value;
+
+                key = Registry.ClassesRoot.OpenSubKey(@"MIME\Database\Content Type\" + mimeType, false);
+                value = key?.GetValue("Extension", null);
+                result = value?.ToString() ?? string.Empty;
+            }
+
+            if (result == string.Empty)
+                result = MimeTypeMap.GetExtension(mimeType, false);
+            return result;
+        }
 
         private static IDictionary<string, string> BuildMappings()
         {

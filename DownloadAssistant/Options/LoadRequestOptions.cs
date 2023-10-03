@@ -1,4 +1,5 @@
 ﻿using DownloadAssistant.Base;
+using DownloadAssistant.Utilities;
 
 namespace DownloadAssistant.Options
 {
@@ -96,10 +97,6 @@ namespace DownloadAssistant.Options
         /// </summary>
         public bool MergeWhileProgress { get; set; }
 
-        /// <summary>
-        /// Assigns the length of the file to download before the download completes.
-        /// </summary>
-        public bool PreAllocateFileLength { get; set; }
 
         /// <summary>
         /// Delete temporary files if the <see cref="LoadRequest"/> failed.
@@ -126,8 +123,6 @@ namespace DownloadAssistant.Options
             BufferLength = options.BufferLength;
             MaxBytesPerSecond = options.MaxBytesPerSecond;
             SupportsHeadRequest = options.SupportsHeadRequest;
-            ExcludedExtensions = options.ExcludedExtensions;
-            PreAllocateFileLength = options.PreAllocateFileLength;
             Filename = options.Filename;
         }
 

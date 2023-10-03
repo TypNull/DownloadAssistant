@@ -1,12 +1,21 @@
 ﻿using Microsoft.Win32;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
 
-namespace DownloadAssistant.Base
+namespace DownloadAssistant.Utilities
 {
     internal static class IOManager
     {
+        public static char[] GetInvalidFileNameChars() => new char[]
+          {
+            '\"', '<', '>', '|', '\0',
+            (char)1, (char)2, (char)3, (char)4, (char)5, (char)6, (char)7, (char)8, (char)9, (char)10,
+            (char)11, (char)12, (char)13, (char)14, (char)15, (char)16, (char)17, (char)18, (char)19, (char)20,
+            (char)21, (char)22, (char)23, (char)24, (char)25, (char)26, (char)27, (char)28, (char)29, (char)30,
+            (char)31, ':', '?', '\\', '/'
+          };
         /// <summary>
         /// Converts Bytes to Megabytes
         /// InputBytes : 1.048.576
@@ -23,7 +32,7 @@ namespace DownloadAssistant.Base
         public static string RemoveInvalidFileNameChars(string name)
         {
             StringBuilder fileBuilder = new(name);
-            foreach (char c in Path.GetInvalidFileNameChars())
+            foreach (char c in GetInvalidFileNameChars())
                 fileBuilder.Replace(c.ToString(), string.Empty);
             return fileBuilder.ToString();
         }
@@ -148,65 +157,6 @@ namespace DownloadAssistant.Base
         /// </summary>
         /// <param name="path">Path to the file that should be created</param>
         public static void Create(string path) => File.Create(path).Close();
-
-
-
-
-        /*   /// <summary>
-           /// Merges all chunked parts of a file into one big file.
-           /// </summary>
-           /// <returns>A awaitable Task</returns>
-           public static async Task MergeChunks<T>(ChunkInfo<T> chunkInfo)
-           {
-               if (chunkInfo.IsCopying)
-                   return;
-               chunkInfo.IsCopying = true;
-
-               Chunk[] chunks = chunkInfo.Chunks;
-               OldLoadRequest[] requests = chunkInfo.Requests;
-
-               //Check if the fist part was downloaded
-               if (!chunks[0].IsFinished)
-               {
-                   chunkInfo.IsCopying = false;
-                   return;
-               }
-
-               //FileStream to merge the chunked files
-               FileStream? outputStream = null;
-               try
-               {
-                   outputStream = new(requests[0].Destination, FileMode.Append);
-                   for (int i = 0; i < chunks.Length; i++)
-                   {
-                       if (!chunks[i].IsFinished)
-                           break;
-                       if (chunks[i].IsCopied)
-                           continue;
-                       string path = requests[i].TmpDestination;
-                       if (!File.Exists(path))
-                           break;
-
-                       FileStream inputStream = File.OpenRead(path);
-                       await inputStream.CopyToAsync(outputStream);
-                       await inputStream.FlushAsync();
-                       await inputStream.DisposeAsync();
-                       File.Delete(path);
-
-                       chunks[i].IsCopied = true;
-                   }
-               }
-               catch (Exception) { }
-               finally
-               {
-                   if (outputStream != null)
-                   {
-                       await outputStream.FlushAsync();
-                       await outputStream.DisposeAsync();
-                   }
-                   chunkInfo.IsCopying = false;
-               }
-           }*/
     }
 }
 

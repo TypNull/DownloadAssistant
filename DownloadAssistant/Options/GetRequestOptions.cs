@@ -1,5 +1,6 @@
 ﻿using DownloadAssistant.Base;
 using DownloadAssistant.Request;
+using DownloadAssistant.Utilities;
 using Requests.Options;
 
 namespace DownloadAssistant.Options
@@ -12,7 +13,7 @@ namespace DownloadAssistant.Options
         /// <summary>
         /// Path to the directory where the file sould be stored to.
         /// </summary>
-        public string DirectoryPath { get; init; } = string.Empty;
+        public string DirectoryPath { get; init; } = IOManager.GetDownloadFolderPath() ?? Environment.GetFolderPath(Environment.SpecialFolder.InternetCache);
 
         /// <summary>
         /// Filename of the file that will be created and be written to.
