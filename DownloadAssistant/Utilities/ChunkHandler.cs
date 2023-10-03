@@ -105,6 +105,22 @@ namespace DownloadAssistant.Utilities
             _infoFetched = true;
             Requests.ToList().ForEach(x => x.SetContentLength(request.FullContentLegth!.Value));
         }
+
+        internal void DeleteChunks()
+        {
+            foreach (var request in Requests)
+            {
+                try
+                {
+                    Debug.WriteLine(request.FilePath);
+                    if (File.Exists(request.FilePath))
+                        File.Delete(request.FilePath);
+                }
+                catch (Exception)
+                {
+                }
+            }
+        }
     }
 
 }

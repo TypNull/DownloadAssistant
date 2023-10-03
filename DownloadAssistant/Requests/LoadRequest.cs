@@ -139,7 +139,8 @@ namespace DownloadAssistant.Request
             {
                 _chunkHandler = new ChunkHandler();
                 _request = _chunkHandler.RequestContainer;
-                
+
+
                 for (int i = 0; i < Options.Chunks; i++)
                     _chunkHandler.Add(CreateChunk(i, options));
                 
@@ -153,7 +154,16 @@ namespace DownloadAssistant.Request
             options.RequestStarted += Options.RequestStarted;
             options.RequestFailed += (message) => _attemptCounter++;
             options.RequestCompleated += MoveTemp;
-            _request = new GetRequest(Url, options);
+            _request = new GetRequest(Url, options)
+            {
+                StateChanged = OnStateChanged
+            };
+        }
+
+        private void OnStateChanged(Request<GetRequestOptions, GetRequest, HttpResponseMessage?>? req)
+        {
+            if (req?.State == RequestState.Failed || req?.State == RequestState.Cancelled)
+                ClearOnFailure();
         }
 
         private GetRequest CreateChunk(int index, GetRequestOptions options)
@@ -161,14 +171,24 @@ namespace DownloadAssistant.Request
             options = options with
             {
                 Range = new LoadRange(new Index(index), Options.Chunks),
-                Filename = $"{(string.IsNullOrWhiteSpace(Options.Filename) ? "*" : Options.Filename)}.{1 + index}_chunk"
+                Filename = $"{(string.IsNullOrWhiteSpace(Options.Filename) ? "*" : Options.Filename)}.{1 + index}_chunk",
+                RequestCompleated = MoveTemp,
+                RequestFailed = OnFailure,
             };
             if (index == 0)
                 options.RequestStarted += Options.RequestStarted;
 
             options.RequestFailed += (message) => _attemptCounter++;
-            options.RequestCompleated += MoveTemp;
+           
             return new GetRequest(Url, options);
+        }
+
+        private void OnFailure(HttpResponseMessage? element)
+        {
+            if (State != RequestState.Failed)
+                return;
+            Cancel();
+            ClearOnFailure();
         }
 
         private void OnInfosFetched(GetRequest? request)
@@ -230,6 +250,19 @@ namespace DownloadAssistant.Request
             Options.RequestCompleated?.Invoke(Destination);
         }
 
+        private bool _cleared = false;
+        private void ClearOnFailure()
+        {
+            if (!Options.DeleteTmpOnFailure || _cleared)
+                return;
+            _cleared = true;
+            if (File.Exists(TempDestination))
+                File.Delete(TempDestination);
+            if (File.Exists(Destination) && new FileInfo(Destination).Length == 0)
+                File.Delete(Destination);
+            _chunkHandler.DeleteChunks();
+        }
+
 
         async Task IRequest.StartRequestAsync() => await RunRequestAsync();
 
@@ -255,7 +288,7 @@ namespace DownloadAssistant.Request
         /// </summary>
         public override void Pause() => _request.Pause();
         /// <inheritdoc/>
-        public override void Cancel() => _request.Cancel();
+        public override void Cancel() =>_request.Cancel();  
         ///<inheritdoc/>
         public override void Dispose() => _request.Dispose();
     }

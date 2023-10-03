@@ -4,7 +4,7 @@
 # Changing Project!
 ## TODO:
 - M3U downloads
-- Delete the chunks in case of failure
+- Restart with part download of chunks
 
 The download assistant library is based on .Net 6.0 and manages your download requests. It uses the [Shard.Requests](https://github.com/TypNull/Requests) library to handle the downloads
 It contains classes that help you to download your desired files.

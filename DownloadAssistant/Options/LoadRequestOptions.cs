@@ -119,6 +119,7 @@ namespace DownloadAssistant.Options
             Range = options.Range;
             _temporaryPath = options.TempDestination;
             _destinationPath = options.DestinationPath;
+            DeleteTmpOnFailure = options.DeleteTmpOnFailure;
             WriteMode = options.WriteMode;
             BufferLength = options.BufferLength;
             MaxBytesPerSecond = options.MaxBytesPerSecond;
