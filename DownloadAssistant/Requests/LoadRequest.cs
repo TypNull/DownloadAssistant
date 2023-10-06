@@ -3,7 +3,6 @@ using DownloadAssistant.Options;
 using DownloadAssistant.Utilities;
 using Requests;
 using Requests.Options;
-using System.Diagnostics;
 
 namespace DownloadAssistant.Request
 {
@@ -16,6 +15,11 @@ namespace DownloadAssistant.Request
         /// Range that should be downloaded.
         /// </summary>
         public LoadRange Range => Options.Range;
+
+        /// <summary>
+        /// Filename of the content that is downloaded
+        /// </summary>
+        public string? Filename { get; private set; }
 
         /// <inheritdoc/>
         public override RequestState State
@@ -32,12 +36,12 @@ namespace DownloadAssistant.Request
         /// <summary>
         /// Bytes that are written to the temp file
         /// </summary>
-        public long BytesWritten => _chunkHandler.BytesWritten;
+        public long BytesWritten => IsChunked ? _chunkHandler.BytesWritten : ((GetRequest)_request).BytesWritten;
 
         /// <summary>
         /// Bytes that are downloaded
         /// </summary>
-        public long BytesDownloaded => _chunkHandler.BytesDownloaded;
+        public long BytesDownloaded => IsChunked ? _chunkHandler.BytesDownloaded : ((GetRequest)_request).BytesWritten;
 
         /// <summary>
         /// <see cref="AggregateException"/> that contains the throwed exeptions
@@ -71,6 +75,9 @@ namespace DownloadAssistant.Request
         /// <inheritdoc/>
         public override int AttemptCounter => _attemptCounter;
         private int _attemptCounter = 0;
+
+
+        private bool _isCleared = false;
 
         /// <summary>
         /// If this <see cref="IRequest"/> downloads in parts
@@ -143,13 +150,13 @@ namespace DownloadAssistant.Request
 
                 for (int i = 0; i < Options.Chunks; i++)
                     _chunkHandler.Add(CreateChunk(i, options));
-                
+
                 return;
             }
 
             options = options with
             {
-                Filename = $"{(string.IsNullOrWhiteSpace(Options.Filename) ? "*" : Options.Filename)}.part",
+                Filename = $"{(string.IsNullOrWhiteSpace(Options.Filename) ? "*.*" : Options.Filename)}.part",
             };
             options.RequestStarted += Options.RequestStarted;
             options.RequestFailed += (message) => _attemptCounter++;
@@ -162,7 +169,7 @@ namespace DownloadAssistant.Request
 
         private void OnStateChanged(Request<GetRequestOptions, GetRequest, HttpResponseMessage?>? req)
         {
-            if (req?.State == RequestState.Failed || req?.State == RequestState.Cancelled)
+            if (req?.State is RequestState.Failed or RequestState.Cancelled)
                 ClearOnFailure();
         }
 
@@ -171,7 +178,7 @@ namespace DownloadAssistant.Request
             options = options with
             {
                 Range = new LoadRange(new Index(index), Options.Chunks),
-                Filename = $"{(string.IsNullOrWhiteSpace(Options.Filename) ? "*" : Options.Filename)}.{1 + index}_chunk",
+                Filename = $"{(string.IsNullOrWhiteSpace(Options.Filename) ? "*.*" : Options.Filename)}.{1 + index}_chunk",
                 RequestCompleated = MoveTemp,
                 RequestFailed = OnFailure,
             };
@@ -179,7 +186,7 @@ namespace DownloadAssistant.Request
                 options.RequestStarted += Options.RequestStarted;
 
             options.RequestFailed += (message) => _attemptCounter++;
-           
+
             return new GetRequest(Url, options);
         }
 
@@ -196,27 +203,25 @@ namespace DownloadAssistant.Request
             if (request == null)
                 return;
 
-            
+
             if (IsChunked)
-            {
                 _chunkHandler.SetInfos(request);
-                if (Destination == string.Empty)
+            if (Filename == null)
+            {
+                Filename = request.ContentName;
+                Destination = Path.Combine(Options.DestinationPath, Filename);
+                TempDestination = Path.Combine(Options.TempDestination, Filename + ".part");
+                _ = Task.Run(() =>
                 {
-                    Destination = Path.Combine(Options.DestinationPath, request.ContentName);
-                    TempDestination = Path.Combine(Options.TempDestination, request.ContentName + ".part");
-                }
-                return;
+                    try { Options.InfosFetched?.Invoke(this); } catch (Exception) { }
+                });
+                ExcludedExtensions(request.ContentExtension);
             }
-            Destination = Path.Combine(Options.DestinationPath, request.ContentName);
-            TempDestination = request.FilePath;
-
-
-            ExcludedExtensions(request.ContentExtension);
         }
 
         private void ExcludedExtensions(string contentExtension)
         {
-            if  (Options.ExcludedExtensions != null && !string.IsNullOrWhiteSpace(contentExtension) && Options.ExcludedExtensions.Any(contentExtension.EndsWith))
+            if (Options.ExcludedExtensions != null && !string.IsNullOrWhiteSpace(contentExtension) && Options.ExcludedExtensions.Any(contentExtension.EndsWith))
             {
                 AddException(new InvalidOperationException($"Content extension is invalid"));
                 Cancel();
@@ -233,7 +238,7 @@ namespace DownloadAssistant.Request
             if (IsChunked)
             {
                 if (Options.MergeWhileProgress || _chunkHandler.Requests.All(request => request.State == RequestState.Compleated))
-                canMove = await _chunkHandler.StartMergeTo(TempDestination);
+                    canMove = await _chunkHandler.StartMergeTo(TempDestination);
             }
             else
                 canMove = true;
@@ -250,12 +255,11 @@ namespace DownloadAssistant.Request
             Options.RequestCompleated?.Invoke(Destination);
         }
 
-        private bool _cleared = false;
         private void ClearOnFailure()
         {
-            if (!Options.DeleteTmpOnFailure || _cleared)
+            if (!Options.DeleteTmpOnFailure || _isCleared)
                 return;
-            _cleared = true;
+            _isCleared = true;
             if (File.Exists(TempDestination))
                 File.Delete(TempDestination);
             if (File.Exists(Destination) && new FileInfo(Destination).Length == 0)
@@ -280,7 +284,6 @@ namespace DownloadAssistant.Request
         /// <summary>
         /// Start the <see cref="LoadRequest"/> if it is not yet started or paused.
         /// </summary>
-
         public override void Start() => _request.Start();
 
         /// <summary>
@@ -288,7 +291,11 @@ namespace DownloadAssistant.Request
         /// </summary>
         public override void Pause() => _request.Pause();
         /// <inheritdoc/>
-        public override void Cancel() =>_request.Cancel();  
+        public override void Cancel()
+        {
+            base.Cancel();
+            _request.Cancel();
+        }
         ///<inheritdoc/>
         public override void Dispose() => _request.Dispose();
     }

@@ -6,7 +6,7 @@
 - M3U downloads
 - Restart with part download of chunks
 
-The download assistant library is based on .Net 6.0 and manages your download requests. It uses the [Shard.Requests](https://github.com/TypNull/Requests) library to handle the downloads
+The download assistant library is based on .Net 6.0 and manages your download requests. This dowloader uses the [Shard.Requests](https://github.com/TypNull/Requests) library to handle the downloads
 It contains classes that help you to download your desired files.
 _Tested with more than 1000 simultaneously HTTP Requests and file sized over 80Gb_
 
@@ -76,9 +76,7 @@ To set options on the `Request` create a `RequestOption` or for a `LoadRequest` 
             IsDownload = true,
             //If the downloader should Override, Create a new file or Append (default is Append)
             //Resume function only available with append!
-            Mode = LoadMode.Create, 
-            // Progress that writes the % to the Console
-            Progress = new Progress<float>(f => Console.WriteLine((f).ToString("0.0%"))),
+            Mode = LoadMode.Create,
             //Chunk a file to download faster
             Chunks = 3
         };

@@ -1,5 +1,7 @@
 ﻿using DownloadAssistant.Base;
+using DownloadAssistant.Request;
 using DownloadAssistant.Utilities;
+using Requests.Options;
 
 namespace DownloadAssistant.Options
 {
@@ -23,6 +25,11 @@ namespace DownloadAssistant.Options
         /// Start can not be used with LoadMode.Append
         /// </summary>
         public LoadRange Range { get; init; }
+
+        /// <summary>
+        /// Raised when Fileinfos are fetched from the server
+        /// </summary>
+        public Notify<LoadRequest>? InfosFetched { get; init; }
 
         /// <summary>
         /// Extensions that are not allowed.
@@ -124,6 +131,7 @@ namespace DownloadAssistant.Options
             BufferLength = options.BufferLength;
             MaxBytesPerSecond = options.MaxBytesPerSecond;
             SupportsHeadRequest = options.SupportsHeadRequest;
+            InfosFetched = options.InfosFetched;
             Filename = options.Filename;
         }
 

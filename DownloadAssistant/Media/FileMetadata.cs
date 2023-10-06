@@ -32,13 +32,16 @@ namespace DownloadAssistant.Media
 
         private void SetFilename()
         {
-            FileName = _headers.ContentDisposition?.FileNameStar ?? string.Empty;
+            FileName = RemoveInvalidFileNameChars(_headers.ContentDisposition?.FileNameStar ?? _headers.ContentDisposition?.FileName ?? string.Empty);
             if (FileName == string.Empty)
+            {
                 FileName = RemoveInvalidFileNameChars(_uri.Segments.Last() ?? string.Empty);
-            if (FileName == string.Empty)
-                FileName = RemoveInvalidFileNameChars(Path.GetFileName(_uri.AbsoluteUri) ?? string.Empty);
-            if (FileName == string.Empty)
-                FileName = "requested_download_" + RemoveInvalidFileNameChars(_uri.Host);
+                if (FileName == string.Empty)
+                    FileName = RemoveInvalidFileNameChars(Path.GetFileName(_uri.AbsoluteUri) ?? string.Empty);
+                if (FileName == string.Empty)
+                    FileName = "requested_download_" + RemoveInvalidFileNameChars(_uri.Host);
+                FileName = FileName.Length > 80 ? FileName.Remove(80) : FileName;
+            }
         }
 
         /// <summary>
@@ -56,13 +59,14 @@ namespace DownloadAssistant.Media
                 fileName = FileName;
                 fileName = fileName.Contains('.') ? fileName : fileName + Extension;
             }
-            else {
+            else
+            {
                 if (fileName.StartsWith("*"))
                     fileName = Path.GetFileNameWithoutExtension(FileName) + fileName[1..];
-                else if (fileName.Contains(".*"))
+                if (fileName.Contains(".*"))
                     fileName = fileName.Replace(".*", Extension);
-                if (fileName.Contains("*"))
-                    fileName = fileName.Remove('*'); 
+                if (fileName.Contains('*'))
+                    fileName = fileName.Remove('*');
             }
             return fileName;
         }
