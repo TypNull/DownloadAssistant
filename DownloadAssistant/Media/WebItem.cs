@@ -46,12 +46,12 @@ namespace DownloadAssistant.Media
         public WebType Type { get; init; }
 
         /// <summary>
-        /// Creates a <see cref="OldLoadRequest"/> out of this WebItem
+        /// Creates a <see cref="GetRequest"/> out of this WebItem
         /// </summary>
         /// <param name="requestOptions">Options for the Request</param>
-        /// <returns>Returns a new <see cref="OldLoadRequest"/></returns>
+        /// <returns>Returns a new <see cref="GetRequest"/></returns>
 
-        // public OldLoadRequest CreateLoadRequest(OldLoadRequestOptions? requestOptions = null) => new(URL.AbsoluteUri, requestOptions);
+        public GetRequest CreateLoadRequest(GetRequestOptions? requestOptions = null) => new(URL.AbsoluteUri, requestOptions);
 
         /// <summary>
         /// Creates a <see cref="StatusRequest"/> to see if the file is available.

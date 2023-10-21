@@ -9,8 +9,14 @@ namespace DownloadAssistant.Request
     /// <summary>
     /// A <see cref="WebRequest{TOptions, TCompleated}"/> that loads the response as stream and saves it to a file
     /// </summary>
-    public class LoadRequest : WebRequest<LoadRequestOptions, string>, IProgressable, IRequest
+    public class LoadRequest : WebRequest<LoadRequestOptions, string>, IProgressableRequest
     {
+        private int _attemptCounter = 0;
+        private bool _isCleared = false;
+        private ChunkHandler _chunkHandler = new();
+        private IRequest _request = null!;
+
+
         /// <summary>
         /// Range that should be downloaded.
         /// </summary>
@@ -20,18 +26,6 @@ namespace DownloadAssistant.Request
         /// Filename of the content that is downloaded
         /// </summary>
         public string? Filename { get; private set; }
-
-        /// <inheritdoc/>
-        public override RequestState State
-        {
-            get
-            {
-                if (_state == RequestState.Available)
-                    return _request.State;
-                return _state;
-            }
-        }
-        private RequestState _state = RequestState.Available;
 
         /// <summary>
         /// Bytes that are written to the temp file
@@ -74,17 +68,11 @@ namespace DownloadAssistant.Request
 
         /// <inheritdoc/>
         public override int AttemptCounter => _attemptCounter;
-        private int _attemptCounter = 0;
-
-
-        private bool _isCleared = false;
 
         /// <summary>
         /// If this <see cref="IRequest"/> downloads in parts
         /// </summary>
         public bool IsChunked { get; private set; }
-
-        private ChunkHandler _chunkHandler = new();
 
         /// <summary>
         /// Path to the download file
@@ -99,9 +87,7 @@ namespace DownloadAssistant.Request
         /// <summary>
         /// Progress to get updates of the download process.
         /// </summary>
-        public Progress<float> Progress => ((IProgressable)_request).Progress;
-
-        private IRequest _request = null!;
+        public Progress<float> Progress => ((IProgressableRequest)_request).Progress;
 
         /// <summary>
         /// Creates a <see cref="IRequest"/> that can download a file to a temp file
@@ -123,7 +109,6 @@ namespace DownloadAssistant.Request
 
             CreateDirectory();
             CreateRequest();
-            AutoStart();
         }
 
         /// <summary>
@@ -144,33 +129,31 @@ namespace DownloadAssistant.Request
 
             if (IsChunked)
             {
-                _chunkHandler = new ChunkHandler();
                 _request = _chunkHandler.RequestContainer;
+                _request.StateChanged += OnStateChanged;
 
+                Task.Run(() =>
+                {
+                    for (int i = 0; i < Options.Chunks; i++)
+                        _chunkHandler.Add(CreateChunk(i, options));
 
-                for (int i = 0; i < Options.Chunks; i++)
-                    _chunkHandler.Add(CreateChunk(i, options));
-
+                    AutoStart();
+                });
                 return;
             }
 
             options = options with
             {
                 Filename = $"{(string.IsNullOrWhiteSpace(Options.Filename) ? "*.*" : Options.Filename)}.part",
+                RequestFailed = OnFailure,
+                RequestStarted = Options.RequestStarted,
+                RequestCompleated = OnCompletion,
             };
-            options.RequestStarted += Options.RequestStarted;
-            options.RequestFailed += (message) => _attemptCounter++;
-            options.RequestCompleated += MoveTemp;
-            _request = new GetRequest(Url, options)
-            {
-                StateChanged = OnStateChanged
-            };
-        }
 
-        private void OnStateChanged(Request<GetRequestOptions, GetRequest, HttpResponseMessage?>? req)
-        {
-            if (req?.State is RequestState.Failed or RequestState.Cancelled)
-                ClearOnFailure();
+            _request = new GetRequest(Url, options);
+            _request.StateChanged += OnStateChanged;
+
+            AutoStart();
         }
 
         private GetRequest CreateChunk(int index, GetRequestOptions options)
@@ -179,22 +162,28 @@ namespace DownloadAssistant.Request
             {
                 Range = new LoadRange(new Index(index), Options.Chunks),
                 Filename = $"{(string.IsNullOrWhiteSpace(Options.Filename) ? "*.*" : Options.Filename)}.{1 + index}_chunk",
-                RequestCompleated = MoveTemp,
+                RequestCompleated = OnCompletion,
                 RequestFailed = OnFailure,
             };
             if (index == 0)
                 options.RequestStarted += Options.RequestStarted;
 
-            options.RequestFailed += (message) => _attemptCounter++;
-
             return new GetRequest(Url, options);
         }
 
-        private void OnFailure(HttpResponseMessage? element)
+        private void OnStateChanged(object? sender, RequestState state)
         {
-            if (State != RequestState.Failed)
-                return;
-            Cancel();
+            if (IsChunked && _request.State == RequestState.Compleated)
+                State = RequestState.Running;
+            else if (State == RequestState.Idle)
+                State = _request.State;
+        }
+
+
+        private void OnFailure(IRequest? request, HttpResponseMessage? element)
+        {
+            State = RequestState.Failed;
+            Pause();
             ClearOnFailure();
         }
 
@@ -203,7 +192,6 @@ namespace DownloadAssistant.Request
             if (request == null)
                 return;
 
-
             if (IsChunked)
                 _chunkHandler.SetInfos(request);
             if (Filename == null)
@@ -211,10 +199,7 @@ namespace DownloadAssistant.Request
                 Filename = request.ContentName;
                 Destination = Path.Combine(Options.DestinationPath, Filename);
                 TempDestination = Path.Combine(Options.TempDestination, Filename + ".part");
-                _ = Task.Run(() =>
-                {
-                    try { Options.InfosFetched?.Invoke(this); } catch (Exception) { }
-                });
+                SynchronizationContext.Post((o) => Options.InfosFetched?.Invoke((LoadRequest)o!), this);
                 ExcludedExtensions(request.ContentExtension);
             }
         }
@@ -224,17 +209,15 @@ namespace DownloadAssistant.Request
             if (Options.ExcludedExtensions != null && !string.IsNullOrWhiteSpace(contentExtension) && Options.ExcludedExtensions.Any(contentExtension.EndsWith))
             {
                 AddException(new InvalidOperationException($"Content extension is invalid"));
-                Cancel();
-                _state = RequestState.Failed;
+                OnFailure(this, null);
             }
         }
 
-        private async void MoveTemp(GetRequest? getRequest)
+        private async void OnCompletion(IRequest? request, string? _)
         {
-            if (getRequest == null)
+            if (request == null)
                 return;
             bool canMove = false;
-
             if (IsChunked)
             {
                 if (Options.MergeWhileProgress || _chunkHandler.Requests.All(request => request.State == RequestState.Compleated))
@@ -251,8 +234,8 @@ namespace DownloadAssistant.Request
         {
             IOManager.Move(TempDestination, Destination);
             ((IProgress<float>)Progress).Report(1f);
-            _state = RequestState.Compleated;
-            Options.RequestCompleated?.Invoke(Destination);
+            State = RequestState.Compleated;
+            SynchronizationContext.Post((o) => Options.RequestCompleated?.Invoke((IRequest)o!, Destination), this);
         }
 
         private void ClearOnFailure()
@@ -284,12 +267,20 @@ namespace DownloadAssistant.Request
         /// <summary>
         /// Start the <see cref="LoadRequest"/> if it is not yet started or paused.
         /// </summary>
-        public override void Start() => _request.Start();
+        public override void Start()
+        {
+            State = RequestState.Idle;
+            _request.Start();
+        }
 
         /// <summary>
         /// Set the <see cref="LoadRequest"/> on hold.
         /// </summary>
-        public override void Pause() => _request.Pause();
+        public override void Pause()
+        {
+            base.Pause();
+            _request.Pause();
+        }
         /// <inheritdoc/>
         public override void Cancel()
         {
@@ -297,6 +288,10 @@ namespace DownloadAssistant.Request
             _request.Cancel();
         }
         ///<inheritdoc/>
-        public override void Dispose() => _request.Dispose();
+        public override void Dispose()
+        {
+            _request.Dispose();
+            base.Dispose();
+        }
     }
 }

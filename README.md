@@ -1,14 +1,10 @@
 ﻿# DownloadAssistant
 ## _Shard Library to handle download Requests_
 
-# Changing Project!
-## TODO:
-- M3U downloads
-- Restart with part download of chunks
-
-The download assistant library is based on .Net 6.0 and manages your download requests. This dowloader uses the [Shard.Requests](https://github.com/TypNull/Requests) library to handle the downloads
+The download assistant library is based on .Net 6.0 and manages your download requests. This dowloader uses the [Shard.Requests](https://github.com/TypNull/Requests) library to handle the downloads.
 It contains classes that help you to download your desired files.
-_Tested with more than 1000 simultaneously HTTP Requests and file sized over 80Gb_
+
+_Tested with more than 5000 simultaneously HTTP Requests and file sized over 80Gb_
 
 - Easy to use! 🔓
 - Efficient ♾️ 
@@ -19,6 +15,7 @@ _Tested with more than 1000 simultaneously HTTP Requests and file sized over 80G
 * [Features](#features)
 * [Information](#tech)
 * [Setup](#how-to-use)
+* [ToDo](#ToDo)
 
 ## Features
 At the moment:
@@ -32,7 +29,7 @@ At the moment:
   - Timeout function ⌛
   - Monitor the progress of the download with `IProgress<float>`
   - Can set path and filename
-  _ Set download speed limit
+  - Set download speed limit
   - Download a specified range of a file 🔛
   - Download a file into chunks ⛓️
   - Exclude extensions for safety _(.exe; .bat; etc...)_ 🛡️
@@ -46,7 +43,7 @@ It is available on [Github](https://github.com/TypNull/DownloadAssistant):
 
 ## Installation
 
-Not available yet.
+Use Nuget to install the actual version
 
 ## How to use
 
@@ -91,6 +88,9 @@ To wait on the request, use *await* or *Wait();*.
 await new LoadRequest("https://speed.hetzner.de/100MB.bin",requestOptions).Task;
 //new LoadRequest("https://speed.hetzner.de/100MB.bin",requestOptions).Wait();
 ```
+## TODO:
+- M3U downloads
+- Restart a download with previously downloaded length
 
 ## License
 

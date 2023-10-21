@@ -1,4 +1,5 @@
 ﻿using DownloadAssistant.Base;
+using DownloadAssistant.Media;
 using DownloadAssistant.Options;
 using DownloadAssistant.Utilities;
 using Requests;
@@ -11,7 +12,7 @@ namespace DownloadAssistant.Request
     /// <summary>
     /// Starts <see cref="HttpGet"/> and saves the content stream to a file.
     /// </summary>
-    public class GetRequest : WebRequest<GetRequestOptions, GetRequest>, IProgressable
+    public class GetRequest : WebRequest<GetRequestOptions, string>, IProgressableRequest
     {
         /// <summary>
         /// Min Byte legth to restart the request and download only partial
@@ -36,7 +37,7 @@ namespace DownloadAssistant.Request
         /// <summary>
         /// Gets the partial length of the Content if the <see cref="GetRequest"/> is partial.
         /// </summary>
-        public long? PartialContentLegth => _httpGet.PartialContentLength;
+        public long? PartialContentLegth { get; private set; }
 
         /// <summary>
         /// Name of the file that should be downloaded.
@@ -96,32 +97,6 @@ namespace DownloadAssistant.Request
         }
 
         /// <summary>
-        /// Creates a HttpGet object that holds the http informations
-        /// </summary>
-        private void SetHttpGet()
-        => _httpGet = new(GetPresetRequestMessage(new(HttpMethod.Get, Url)), Options.SupportsHeadRequest)
-        {
-            Token = Token,
-            Range = Range,
-            Timeout = Options.Timeout,
-            SecondRange = new LoadRange(Options.MinByte, Options.MaxByte)
-        };
-
-        /// <summary>
-        /// Sets the ContentLength of the request if known
-        /// </summary>
-        /// <param name="value">The length</param>
-        /// <exception cref="ArgumentOutOfRangeException">The length can not be 0 or less</exception>
-        public void SetContentLength(long value)
-        {
-            if (value < 1)
-                throw new ArgumentOutOfRangeException(nameof(value));
-            if (FullContentLegth == null)
-                _httpGet.SetContentLength(value);
-        }
-
-
-        /// <summary>
         /// Loads file info if the file exsists
         /// </summary>
         /// <exception cref="InvalidOperationException"></exception>
@@ -134,6 +109,18 @@ namespace DownloadAssistant.Request
             if (File.Exists(FilePath))
                 BytesWritten = new FileInfo(FilePath).Length;
         }
+
+        /// <summary>
+        /// Creates a HttpGet object that holds the http informations
+        /// </summary>
+        private void SetHttpGet()
+        => _httpGet = new(GetPresetRequestMessage(new(HttpMethod.Get, Url)), Options.SupportsHeadRequest)
+        {
+            Token = Token,
+            Range = Range,
+            Timeout = Options.Timeout,
+            SecondRange = new LoadRange(Options.MinByte, Options.MaxByte)
+        };
 
         /// <summary>
         /// Handels the request of this <see cref="IRequest"/>.
@@ -157,56 +144,83 @@ namespace DownloadAssistant.Request
             return result;
         }
 
+
         private async Task<RequestReturn> LoadAsync()
         {
             if (IsFinished())
-                return new(true, this, null);
+                return new(true, FilePath, null);
 
             HttpResponseMessage res = await SendRequestAsync();
-
             if (!res.IsSuccessStatusCode || State != RequestState.Running)
-                return new(false, this, res);
-
+                return new(false, FilePath, res);
             bool noBytesWritten = BytesWritten <= 0;
-            Media.FileMetadata file = new(res.Content.Headers, _uri);
-            Filename = file.BuildFilename(Options.Filename);
-            ContentName = Path.GetFileNameWithoutExtension(Filename);
-            ContentExtension = file.Extension;
 
-            SetFileInfo();
+            if (noBytesWritten)
+                SetFileInfo(res);
 
             if (IsFinished())
-                return new(true, this, null);
+                return new(true, FilePath, null);
 
-            res = await FileInfosFetched(res, noBytesWritten);
-            return new(true, this, res);
+            res = await ReloadActions(res, noBytesWritten);
+            await WriteToFileAsync(res);
+
+            return new(true, FilePath, res);
         }
 
-        private async Task<HttpResponseMessage> FileInfosFetched(HttpResponseMessage res, bool noBytesWritten)
+
+        /// <summary>
+        /// Sets the ContentLength of the request if known
+        /// </summary>
+        /// <param name="value">The length</param>
+        /// <exception cref="ArgumentOutOfRangeException">The length can not be 0 or less</exception>
+        public void SetContentLength(long value)
+        {
+            if (value < 1)
+                throw new ArgumentOutOfRangeException(nameof(value));
+            if (FullContentLegth == null)
+                _httpGet.SetContentLength(value);
+        }
+
+
+        /// <summary>
+        /// Checks if further actions on the file or the request are nessesary
+        /// </summary>
+        /// <param name="res"></param>
+        /// <param name="noBytesWritten"></param>
+        /// <returns>The original or updated Response</returns>
+        private async Task<HttpResponseMessage> ReloadActions(HttpResponseMessage res, bool noBytesWritten)
         {
             if (CheckReload(noBytesWritten))
             {
-                _httpGet.AddBytesToStart(BytesWritten + 1);
                 res = await SendRequestAsync();
+                ContentHeaders = res.Content.Headers;
             }
 
-            if (CheckClearFile())
+            if (CheckClearFile(noBytesWritten))
             {
                 IOManager.Create(FilePath);
                 BytesWritten = 0;
+                PartialContentLegth = null;
             }
 
-            ContentHeaders = res.Content.Headers;
 
-            _ = Task.Run(() => Options.InfosFetched?.Invoke(this));
-
-            await WriteToFileAsync(res);
             return res;
         }
 
-        private void SetFileInfo()
+        /// <summary>
+        /// Sets the Informationt to the httpRequest
+        /// </summary>
+        /// <param name="res"></param>
+        private void SetFileInfo(HttpResponseMessage res)
         {
+            FileMetadata fileData = new(res.Content.Headers, _uri);
+            Filename = fileData.BuildFilename(Options.Filename);
             FilePath = Path.Combine(Options.DirectoryPath, Filename);
+            ContentName = Path.GetFileNameWithoutExtension(Filename);
+            ContentExtension = fileData.Extension;
+            ContentHeaders = res.Content.Headers;
+            PartialContentLegth = _httpGet.PartialContentLength;
+
             switch (_mode)
             {
                 case WriteMode.CreateNew:
@@ -232,15 +246,17 @@ namespace DownloadAssistant.Request
                     }
                     break;
             }
+
+            Options.InfosFetched?.Invoke(this);
         }
 
-        private bool CheckReload(bool noBytesWritten) => noBytesWritten && BytesWritten >= MIN_RELOAD;
-
-        private bool CheckClearFile() => (!IsPartial()) && ShouldBePartial() && BytesWritten > 0;
-
+        /// <summary>
+        /// Starts the httpGet Request and overwrites the bytesWritten
+        /// </summary>
+        /// <returns></returns>
         private async Task<HttpResponseMessage> SendRequestAsync()
         {
-            _httpGet.AddBytesToStart(BytesWritten < 1 ? 0 : BytesWritten + 1);
+            _httpGet.AddBytesToStart(BytesWritten < 1 ? 0 : BytesWritten);
             return await _httpGet.LoadResponseAsync();
         }
 
@@ -270,6 +286,7 @@ namespace DownloadAssistant.Request
                 await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), Token);
                 BytesWritten += bytesRead;
                 _progress.Report((float)BytesWritten / (ContentLength + 100));
+                Debug.Assert((float)BytesWritten / (ContentLength + 100) < 1f);
             }
         }
 
@@ -290,6 +307,21 @@ namespace DownloadAssistant.Request
         /// </summary>
         /// <returns>bool</returns>
         public bool ShouldBePartial() => _httpGet.HasToBePartial();
+
+        /// <summary>
+        /// Checks if the HttpRequest should be send again. When the Filename exists on drive
+        /// </summary>
+        /// <param name="noBytesWritten">if the request didn't know before that the file on drive exists</param>
+        /// <returns>A bool that indicates if a reload is nessesary</returns>
+        private bool CheckReload(bool noBytesWritten) => noBytesWritten && BytesWritten >= MIN_RELOAD;
+
+        /// <summary>
+        /// Checks if the HttpRequest Should be partioal but is not
+        /// </summary>
+        /// <param name="noBytesWritten">if the request didn't know before that the file on drive exists</param>
+        /// <returns>A bool that indicates if the file should be deleted</returns>
+        private bool CheckClearFile(bool noBytesWritten) => ((!IsPartial()) && ShouldBePartial() && BytesWritten > 0) || (noBytesWritten && BytesWritten < MIN_RELOAD);
+
 
         /// <summary>
         /// Dispose the <see cref="GetRequest"/>. 

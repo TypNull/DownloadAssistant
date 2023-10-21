@@ -8,7 +8,7 @@ namespace DownloadAssistant.Options
     /// <summary>
     /// A Class to hold the options for a <see cref="GetRequest"/> class and to modify it.
     /// </summary>
-    public record GetRequestOptions : WebRequestOptions<GetRequest>
+    public record GetRequestOptions : WebRequestOptions<string>
     {
         /// <summary>
         /// Path to the directory where the file sould be stored to.

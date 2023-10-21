@@ -3,13 +3,27 @@ using System.Text;
 
 namespace DownloadAssistant.Media
 {
+    /// <summary>
+    /// Class to build a file
+    /// </summary>
     public class FileMetadata
     {
         private readonly HttpContentHeaders _headers;
         private readonly Uri _uri;
 
+        /// <summary>
+        /// Name of the file
+        /// </summary>
         public string FileName { get; private set; } = string.Empty;
+        /// <summary>
+        /// Extension of the file
+        /// </summary>
         public string Extension { get; private set; } = string.Empty;
+        /// <summary>
+        /// Contructor needs
+        /// </summary>
+        /// <param name="headers">Http headers of the response</param>
+        /// <param name="uri">The Url to the file</param>
         public FileMetadata(HttpContentHeaders headers, Uri uri)
         {
             _headers = headers;
@@ -30,6 +44,9 @@ namespace DownloadAssistant.Media
                 Extension = Path.GetExtension(_uri.AbsoluteUri);
         }
 
+        /// <summary>
+        /// Generates the Filename from the header
+        /// </summary>
         private void SetFilename()
         {
             FileName = RemoveInvalidFileNameChars(_headers.ContentDisposition?.FileNameStar ?? _headers.ContentDisposition?.FileName ?? string.Empty);
@@ -45,11 +62,9 @@ namespace DownloadAssistant.Media
         }
 
         /// <summary>
-        /// Builds the guessed Filename from a given url and response
+        /// Builds the setted Filename
         /// </summary>
-        /// <param name="headers">ContentHeaders of the request</param>
         /// <param name="preSetFilename">Name that was pre set</param>
-        /// <param name="uri">Given Uri/Url</param>
         /// <returns></returns>
         public string BuildFilename(string preSetFilename)
         {

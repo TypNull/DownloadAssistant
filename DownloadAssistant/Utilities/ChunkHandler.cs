@@ -1,13 +1,17 @@
 ﻿using DownloadAssistant.Request;
 using Requests;
 using Requests.Options;
-using System.Diagnostics;
-using System.IO;
 
 namespace DownloadAssistant.Utilities
 {
+    /// <summary>
+    /// Handels and merges the chunks
+    /// </summary>
     public class ChunkHandler
     {
+        /// <summary>
+        /// Container for all chunks
+        /// </summary>
         public ProgressableContainer<GetRequest> RequestContainer { get; } = new();
 
         /// <summary>
@@ -20,6 +24,9 @@ namespace DownloadAssistant.Utilities
         /// </summary>
         public long BytesDownloaded => Requests.Sum(x => x.BytesWritten);
 
+        /// <summary>
+        /// Gets all Requests that are in the <see cref="RequestContainer"/>
+        /// </summary>
         public IReadOnlyList<GetRequest> Requests => RequestContainer.GetRequests();
         private readonly List<GetRequest> _copied = new();
 
@@ -45,7 +52,7 @@ namespace DownloadAssistant.Utilities
 
             await MergeChunks(destination);
 
-            _isCopying = 0;
+            Interlocked.CompareExchange(ref _isCopying, 0, 1);
             if (Requests.All((s) => s.State == RequestState.Compleated))
             {
                 if (Requests.Count == _copied.Count)
@@ -71,7 +78,6 @@ namespace DownloadAssistant.Utilities
                     string path = Requests[i].FilePath;
                     if (!File.Exists(path))
                         break;
-
                     await WriteChunkToDestination(path, outputStream);
                     _copied.Add(Requests[i]);
                 }
@@ -87,7 +93,7 @@ namespace DownloadAssistant.Utilities
             }
         }
 
-        private async Task WriteChunkToDestination(string path , FileStream outputStream)
+        private async Task WriteChunkToDestination(string path, FileStream outputStream)
         {
             FileStream inputStream = File.OpenRead(path);
             await inputStream.CopyToAsync(outputStream);
@@ -97,22 +103,32 @@ namespace DownloadAssistant.Utilities
             File.Delete(path);
         }
 
+        /// <summary>
+        /// Add a request that represents a chunk
+        /// </summary>
+        /// <param name="request">GeRequest that is a chunked part</param>
         public void Add(GetRequest request) => RequestContainer.Add(request);
 
-        internal void SetInfos(GetRequest request)
+        /// <summary>
+        /// Sets ContentLength to all Chunks based on a <see cref="GetRequest"/>
+        /// </summary>
+        /// <param name="request"></param>
+        public void SetInfos(GetRequest request)
         {
-            if(_infoFetched) return;
+            if (_infoFetched) return;
             _infoFetched = true;
             Requests.ToList().ForEach(x => x.SetContentLength(request.FullContentLegth!.Value));
         }
 
-        internal void DeleteChunks()
+        /// <summary>
+        /// Deletes all files that were created by the chunks
+        /// </summary>
+        public void DeleteChunks()
         {
-            foreach (var request in Requests)
+            foreach (GetRequest request in Requests)
             {
                 try
                 {
-                    Debug.WriteLine(request.FilePath);
                     if (File.Exists(request.FilePath))
                         File.Delete(request.FilePath);
                 }
