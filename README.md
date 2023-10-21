@@ -1,4 +1,5 @@
-﻿# DownloadAssistant
+﻿[![NuGet](https://img.shields.io/nuget/vpre/Shard.DownloadAssistant)](https://www.nuget.org/packages/Shard.DownloadAssistant) [![Downloads](https://img.shields.io/nuget/dt/Shard.DownloadAssistant)](https://www.nuget.org/packages/Shard.DownloadAssistant) [![License](https://img.shields.io/github/license/typnull/DownloadAssistant.svg)](https://github.com/typnull/downloadassistant/blob/master/LICENSE) ![Maintainability](https://img.shields.io/badge/Maintainability%20Index-85%25-brightgreen)
+# DownloadAssistant
 ## _Shard Library to handle download Requests_
 
 The download assistant library is based on .Net 6.0 and manages your download requests. This dowloader uses the [Shard.Requests](https://github.com/TypNull/Requests) library to handle the downloads.
@@ -43,7 +44,7 @@ It is available on [Github](https://github.com/TypNull/DownloadAssistant):
 
 ## Installation
 
-Use Nuget to install the actual version
+Use [NuGet](https://img.shields.io/nuget/dt/Shard.DownloadAssistant) to install the actual version.
 
 ## How to use
 

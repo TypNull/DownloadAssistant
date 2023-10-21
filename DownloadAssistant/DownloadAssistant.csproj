@@ -6,15 +6,33 @@
     <Nullable>enable</Nullable>
     <Title>DownloadAssistant</Title>
     <PackageId>Shard.DownloadAssistant</PackageId>
-    <Copyright>Shard © 2023 | Free to use</Copyright>
+    <Copyright>Shard © 2023</Copyright>
     <PackageProjectUrl>https://github.com/TypNull/DownloadAssistant</PackageProjectUrl>
     <PackageIcon>logo.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Version>0.1.0</Version>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <Description>A free to use library as a download manager.
+Tested with more than 1000 HttpRequests. 
+Also includes retry, priority and cancel function.
+
+Classes:
+   • StatusRequest: Calls a Head request and returns a response message with the headers.
+   • OwnRequest: Wrapper around your own requests. Easy to self-expand function.
+   • SiteRequest: Scans a website for all references.
+   • LoadRequest: To download the response into a file.
+     o This is a HTTP file downloader with pause function. Returns an IProgress to get the download progress.</Description>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>Request, FreeToUse, HttpClient, producer-consumer, file-downloader, downloader, chunk, http, IProgress,</PackageTags>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="..\LICENSE.txt">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
     <None Include="..\logo.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
