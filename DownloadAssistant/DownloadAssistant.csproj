@@ -26,6 +26,8 @@ Classes:
     <PackageTags>Request, FreeToUse, HttpClient, producer-consumer, file-downloader, downloader, chunk, http, IProgress,</PackageTags>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <Company>Shard</Company>
+    <Authors>Meyn</Authors>
   </PropertyGroup>
 
   <ItemGroup>

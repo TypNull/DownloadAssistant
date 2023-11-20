@@ -7,7 +7,7 @@ namespace DownloadAssistant.Utilities
 {
     internal static class IOManager
     {
-        public static char[] GetInvalidFileNameChars() => new char[]
+        public static char[] InvalidFileNameChars = new char[]
           {
             '\"', '<', '>', '|', '\0',
             (char)1, (char)2, (char)3, (char)4, (char)5, (char)6, (char)7, (char)8, (char)9, (char)10,
@@ -31,7 +31,7 @@ namespace DownloadAssistant.Utilities
         public static string RemoveInvalidFileNameChars(string name)
         {
             StringBuilder fileBuilder = new(name);
-            foreach (char c in GetInvalidFileNameChars())
+            foreach (char c in InvalidFileNameChars)
                 fileBuilder.Replace(c.ToString(), string.Empty);
             return fileBuilder.ToString();
         }
