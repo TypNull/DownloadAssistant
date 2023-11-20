@@ -1,0 +1,37 @@
+using DownloadAssistant.Request;
+using Requests.Options;
+
+namespace UnitTest
+{
+    [TestClass]
+    public class AssistantTest
+    {
+        [TestMethod]
+        public async Task GetRequestTest()
+        {
+            GetRequest getRequest = new("https://www.openprinting.org/download/testfiles/pclm-test20210804.tar.xz", new()
+            {
+                DirectoryPath = "D:\\Bibliothek\\Downloads\\Test",
+                Filename = "GetRequest"
+            });
+            getRequest.StateChanged += (object? sender, RequestState e) => Console.WriteLine($"State Changed: {e} | {(sender as GetRequest)?.Url}");
+            await getRequest.Task;
+            Console.WriteLine("Task finished");
+        }
+
+        [TestMethod]
+        public async Task LoadRequestTest()
+        {
+            LoadRequest loadRequest = new("https://www.openprinting.org/download/testfiles/pclm-test20210804.tar.xz", new()
+            {
+                DestinationPath = "D:\\Bibliothek\\Downloads\\Test",
+                Filename = "LoadRequest"
+            });
+            loadRequest.StateChanged += (object? sender, RequestState e) => Console.WriteLine($"State Changed: {e} | {(sender as GetRequest)?.Url}");
+            await loadRequest.Task;
+            Console.WriteLine("Task finished");
+        }
+
+
+    }
+}

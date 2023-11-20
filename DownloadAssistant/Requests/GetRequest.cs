@@ -85,7 +85,7 @@ namespace DownloadAssistant.Request
         /// <param name="url">url to load</param>
         /// <param name="options">otions to change this request</param>
         /// <exception cref="NotSupportedException">Can not set LoadMode.Append and Range.Start</exception>
-        public GetRequest(string url, GetRequestOptions? options) : base(url, options)
+        public GetRequest(string url, GetRequestOptions? options = null) : base(url, options)
         {
             Directory.CreateDirectory(Options.DirectoryPath);
             Filename = Options.Filename.Trim();
