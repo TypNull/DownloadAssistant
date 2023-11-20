@@ -22,6 +22,9 @@ namespace DownloadAssistant.Request
         /// </summary>
         public LoadRange Range => Options.Range;
 
+        /// <inheritdoc/>
+        public override Task Task => _request.Task;
+
         /// <summary>
         /// Filename of the content that is downloaded
         /// </summary>
@@ -131,12 +134,12 @@ namespace DownloadAssistant.Request
             {
                 _request = _chunkHandler.RequestContainer;
                 _request.StateChanged += OnStateChanged;
+                _chunkHandler.Add(CreateChunk(0, options));
 
                 Task.Run(() =>
                 {
-                    for (int i = 0; i < Options.Chunks; i++)
+                    for (int i = 1; i < Options.Chunks; i++)
                         _chunkHandler.Add(CreateChunk(i, options));
-
                     AutoStart();
                 });
                 return;
@@ -152,7 +155,6 @@ namespace DownloadAssistant.Request
 
             _request = new GetRequest(Url, options);
             _request.StateChanged += OnStateChanged;
-
             AutoStart();
         }
 
@@ -287,6 +289,10 @@ namespace DownloadAssistant.Request
             base.Cancel();
             _request.Cancel();
         }
+
+        /// <inheritdoc/>
+        public override void Wait() => Task.Wait();
+
         ///<inheritdoc/>
         public override void Dispose()
         {

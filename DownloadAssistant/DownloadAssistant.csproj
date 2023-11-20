@@ -10,7 +10,7 @@
     <PackageProjectUrl>https://github.com/TypNull/DownloadAssistant</PackageProjectUrl>
     <PackageIcon>logo.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <Description>A free to use library as a download manager.
 Tested with more than 1000 HttpRequests. 
@@ -28,6 +28,7 @@ Classes:
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <Company>Shard</Company>
     <Authors>Meyn</Authors>
+    <PackageReleaseNotes>Fix Issue: LoadRequest Task does not finish</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -46,7 +47,7 @@ Classes:
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Shard.Requests" Version="2.0.0" />
+    <PackageReference Include="Shard.Requests" Version="2.0.1" />
   </ItemGroup>
 
   <ItemGroup>

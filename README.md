@@ -16,7 +16,7 @@ _Tested with more than 5000 simultaneously HTTP Requests and file sized over 80G
 * [Features](#features)
 * [Information](#tech)
 * [Setup](#how-to-use)
-* [ToDo](#ToDo)
+* [ToDo](#TODO)
 
 ## Features
 At the moment:
@@ -25,7 +25,6 @@ At the moment:
 - **LoadRequest:** To download the response content into a file.
   - This is an HTTP file downloader with these functions:
   - *Pause* and *Start* a download ▶
-  - *Resume* a download
   - Get the *filename* and *extension* from the server 📥
   - Timeout function ⌛
   - Monitor the progress of the download with `IProgress<float>`
