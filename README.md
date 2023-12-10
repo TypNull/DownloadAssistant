@@ -1,9 +1,21 @@
-﻿[![NuGet](https://img.shields.io/nuget/vpre/Shard.DownloadAssistant)](https://www.nuget.org/packages/Shard.DownloadAssistant) [![Downloads](https://img.shields.io/nuget/dt/Shard.DownloadAssistant)](https://www.nuget.org/packages/Shard.DownloadAssistant) [![License](https://img.shields.io/github/license/typnull/DownloadAssistant.svg)](https://github.com/typnull/downloadassistant/blob/master/LICENSE) ![Maintainability](https://img.shields.io/badge/Maintainability%20Index-85%25-brightgreen)
+﻿[![NuGet](https://img.shields.io/nuget/vpre/Shard.DownloadAssistant)](https://www.nuget.org/packages/Shard.DownloadAssistant) [![Downloads](https://img.shields.io/nuget/dt/Shard.DownloadAssistant)](https://www.nuget.org/packages/Shard.DownloadAssistant) [![License](https://img.shields.io/github/license/typnull/DownloadAssistant.svg)](https://github.com/typnull/downloadassistant/blob/master/LICENSE.txt) ![Maintainability](https://img.shields.io/badge/Maintainability%20Index-85%25-brightgreen)
 # DownloadAssistant
-## _Shard Library to handle download Requests_
 
-The download assistant library is based on .Net 6.0 and manages your download requests. This dowloader uses the [Shard.Requests](https://github.com/TypNull/Requests) library to handle the downloads.
-It contains classes that help you to download your desired files.
+Introducing the Download Assistant Library for .Net 6.0! 🚀
+
+Looking for a powerful tool to effortlessly manage your download requests? Look no further! 🙌
+
+🔗 Built on top of the [Shard.Requests](https://github.com/TypNull/Requests) library, our Download Assistant Library is here to handle all your downloads with ease. 💪
+
+With its intuitive classes, this library simplifies the process of downloading your desired files. Perfect for beginners, it offers a seamless user experience and great download capabilities. 💯
+
+Simply create an object and let our assistant take care of the rest! ⚡️
+
+⏳ Worried about failed downloads? Our assistant automatically retries downloads and tries to ensure a successful completion.
+
+✨ Additionally, if the server throttles the connection, our assistant has the capability to download a file in parts, significantly speeding up the download time.
+
+Get started with the Download Assistant Library today and experience the convenience and efficiency it brings to your download workflow. 🌟
 
 _Tested with more than 5000 simultaneously HTTP Requests and file sized over 80Gb_
 
@@ -33,6 +45,7 @@ At the moment:
   - Download a specified range of a file 🔛
   - Download a file into chunks ⛓️
   - Exclude extensions for safety _(.exe; .bat; etc...)_ 🛡️
+  - Note!  
 
 ## Tech
 It is available on [Github](https://github.com/TypNull/DownloadAssistant):
@@ -43,7 +56,7 @@ It is available on [Github](https://github.com/TypNull/DownloadAssistant):
 
 ## Installation
 
-Use [NuGet](https://img.shields.io/nuget/dt/Shard.DownloadAssistant) to install the actual version.
+Use [NuGet](https://img.shields.io/nuget/dt/Shard.DownloadAssistant) Packagemanager to install the actual version for your project.
 
 ## How to use
 
@@ -89,8 +102,7 @@ await new LoadRequest("https://speed.hetzner.de/100MB.bin",requestOptions).Task;
 //new LoadRequest("https://speed.hetzner.de/100MB.bin",requestOptions).Wait();
 ```
 ## TODO:
-- M3U downloads
-- Restart a download with previously downloaded length
+The function to restart a download with previously downloaded length for LoadRequest, when WriteMode is set to Append, has not been implemented yet.
 
 ## License
 

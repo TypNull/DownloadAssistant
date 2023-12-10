@@ -111,6 +111,7 @@ namespace DownloadAssistant.Request
                 IsChunked = true;
 
             CreateDirectory();
+            //LoadWrittenBytes();
             CreateRequest();
         }
 
@@ -125,6 +126,20 @@ namespace DownloadAssistant.Request
             else
                 Options = Options with { TempDestination = Options.DestinationPath };
         }
+
+        /*  /// <summary>
+          /// Loads file info if the file exsists
+          /// </summary>
+          /// <exception cref="InvalidOperationException"></exception>
+          private void LoadWrittenBytes()
+          {
+              if (_mode != WriteMode.Append || BytesWritten > 0 || Filename == string.Empty || !Filename.Contains('.'))
+                  return;
+
+              FilePath = Path.Combine(Options.DirectoryPath, Filename);
+              if (File.Exists(FilePath))
+                  BytesWritten = new FileInfo(FilePath).Length;
+          }*/
 
         private void CreateRequest()
         {
@@ -180,7 +195,6 @@ namespace DownloadAssistant.Request
             else if (State == RequestState.Idle)
                 State = _request.State;
         }
-
 
         private void OnFailure(IRequest? request, HttpResponseMessage? element)
         {

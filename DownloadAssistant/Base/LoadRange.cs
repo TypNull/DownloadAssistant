@@ -18,6 +18,7 @@
             Start = NullConvert(start, 0);
             End = end;
             Length = 1 + End - (Start ?? 0);
+            IsAbsolut = true;
         }
 
         private static long? NullConvert(long? value, long valueEqualsNull) => value == valueEqualsNull ? null : value;
@@ -94,7 +95,7 @@
         /// <summary>
         /// If the values are relativ
         /// </summary>
-        public bool IsAbsolut { get; } = false;
+        public bool IsAbsolut { get; }
 
         /// <summary>
         /// If the values are promille values between 0-1000

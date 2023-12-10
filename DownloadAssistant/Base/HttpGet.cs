@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Net.Http.Headers;
 
 namespace DownloadAssistant.Base
@@ -135,7 +136,7 @@ namespace DownloadAssistant.Base
 
             HttpRequestMessage msg = CloneRequestMessage(_originalMessage);
             if (HasToBePartial())
-                msg.Headers.Range = new RangeHeaderValue((Range.Start ?? 0) + _addToStart, Range.End);
+                msg.Headers.Range = new RangeHeaderValue((Range.Start ?? 0) + (_addToStart ?? 0), Range.End);
 
             return await SendHttpMenssage(msg);
         }
@@ -193,7 +194,7 @@ namespace DownloadAssistant.Base
             return Token;
         }
 
-        private void InitAddToStart() => _addToStart = _range.Start.HasValue || _secondRange.Start.HasValue ? 0 : null;
+        private void InitAddToStart() => _addToStart = (_range.Start.HasValue || _secondRange.Start.HasValue ? 0 : null);
 
         /// <summary>
         /// Sets the Range and second Range of <see cref="Options"/> to a fitting value for the request

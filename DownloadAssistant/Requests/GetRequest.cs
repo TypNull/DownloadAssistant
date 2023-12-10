@@ -107,7 +107,10 @@ namespace DownloadAssistant.Request
 
             FilePath = Path.Combine(Options.DirectoryPath, Filename);
             if (File.Exists(FilePath))
+            {
                 BytesWritten = new FileInfo(FilePath).Length;
+                Debug.WriteLine("Set BytesWritten to " + BytesWritten);
+            }
         }
 
         /// <summary>
@@ -162,6 +165,7 @@ namespace DownloadAssistant.Request
                 return new(true, FilePath, null);
 
             res = await ReloadActions(res, noBytesWritten);
+
             await WriteToFileAsync(res);
 
             return new(true, FilePath, res);

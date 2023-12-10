@@ -10,7 +10,7 @@
     <PackageProjectUrl>https://github.com/TypNull/DownloadAssistant</PackageProjectUrl>
     <PackageIcon>logo.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <Description>A free to use library as a download manager.
 Tested with more than 1000 HttpRequests. 
@@ -21,14 +21,15 @@ Classes:
    • OwnRequest: Wrapper around your own requests. Easy to self-expand function.
    • SiteRequest: Scans a website for all references.
    • LoadRequest: To download the response into a file.
-     o This is a HTTP file downloader with pause function. Returns an IProgress to get the download progress.</Description>
+     o This is a HTTP file downloader with pause function.</Description>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>Request, FreeToUse, HttpClient, producer-consumer, file-downloader, downloader, chunk, http, IProgress,</PackageTags>
+    <PackageTags>Request, FreeToUse, HttpClient, producer-consumer, file-downloader, downloader, chunk, http</PackageTags>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <Company>Shard</Company>
     <Authors>Meyn</Authors>
-    <PackageReleaseNotes>Fix Issue: LoadRequest Task does not finish</PackageReleaseNotes>
+    <PackageReleaseNotes>Fix Range issue that crashes partial downloads
+Implement Request Version 2.0.2</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -47,7 +48,7 @@ Classes:
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Shard.Requests" Version="2.0.1" />
+    <PackageReference Include="Shard.Requests" Version="2.0.2" />
   </ItemGroup>
 
   <ItemGroup>

@@ -27,7 +27,7 @@ namespace DownloadAssistant.Utilities
         /// <summary>
         /// Gets all Requests that are in the <see cref="RequestContainer"/>
         /// </summary>
-        public IReadOnlyList<GetRequest> Requests => RequestContainer.GetRequests();
+        public IReadOnlyList<GetRequest> Requests => RequestContainer.ToList();
         private readonly List<GetRequest> _copied = new();
 
         private bool _infoFetched = false;
