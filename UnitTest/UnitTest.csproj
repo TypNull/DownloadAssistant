@@ -19,4 +19,10 @@
     <ProjectReference Include="..\DownloadAssistant\DownloadAssistant.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="Requests">
+      <HintPath>..\..\Requests\Requests\bin\Debug\net6.0\Requests.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

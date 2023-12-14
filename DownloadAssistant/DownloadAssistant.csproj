@@ -10,7 +10,7 @@
     <PackageProjectUrl>https://github.com/TypNull/DownloadAssistant</PackageProjectUrl>
     <PackageIcon>logo.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Version>0.1.2</Version>
+    <Version>0.1.3</Version>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <Description>A free to use library as a download manager.
 Tested with more than 1000 HttpRequests. 
@@ -28,8 +28,7 @@ Classes:
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <Company>Shard</Company>
     <Authors>Meyn</Authors>
-    <PackageReleaseNotes>Fix Range issue that crashes partial downloads
-Implement Request Version 2.0.2</PackageReleaseNotes>
+    <PackageReleaseNotes>Implement Request Version 2.0.3 Version 2.0.2 has bugs</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -48,7 +47,7 @@ Implement Request Version 2.0.2</PackageReleaseNotes>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Shard.Requests" Version="2.0.2" />
+    <PackageReference Include="Shard.Requests" Version="2.0.3" />
   </ItemGroup>
 
   <ItemGroup>

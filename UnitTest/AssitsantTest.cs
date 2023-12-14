@@ -1,4 +1,3 @@
-using DownloadAssistant.Base;
 using DownloadAssistant.Request;
 using Requests.Options;
 
