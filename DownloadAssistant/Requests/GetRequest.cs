@@ -27,17 +27,17 @@ namespace DownloadAssistant.Request
         /// <summary>
         /// Length of the content that will be downloaded
         /// </summary>
-        public long ContentLength => PartialContentLegth ?? FullContentLegth ?? 0;
+        public long ContentLength => PartialContentLength ?? FullContentLength ?? 0;
 
         /// <summary>
         /// Gets the full length of the Content also if the <see cref="GetRequest"/> is partial.
         /// </summary>
-        public long? FullContentLegth => _httpGet.FullContentLength;
+        public long? FullContentLength => _httpGet.FullContentLength;
 
         /// <summary>
         /// Gets the partial length of the Content if the <see cref="GetRequest"/> is partial.
         /// </summary>
-        public long? PartialContentLegth { get; private set; }
+        public long? PartialContentLength { get; private set; }
 
         /// <summary>
         /// Name of the file that should be downloaded.
@@ -181,7 +181,7 @@ namespace DownloadAssistant.Request
         {
             if (value < 1)
                 throw new ArgumentOutOfRangeException(nameof(value));
-            if (FullContentLegth == null)
+            if (FullContentLength == null)
                 _httpGet.SetContentLength(value);
         }
 
@@ -204,7 +204,7 @@ namespace DownloadAssistant.Request
             {
                 IOManager.Create(FilePath);
                 BytesWritten = 0;
-                PartialContentLegth = null;
+                PartialContentLength = null;
             }
 
 
@@ -223,7 +223,7 @@ namespace DownloadAssistant.Request
             ContentName = Path.GetFileNameWithoutExtension(Filename);
             ContentExtension = fileData.Extension;
             ContentHeaders = res.Content.Headers;
-            PartialContentLegth = _httpGet.PartialContentLength;
+            PartialContentLength = _httpGet.PartialContentLength;
 
             switch (_mode)
             {

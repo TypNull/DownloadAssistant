@@ -3,6 +3,9 @@ using DownloadAssistant.Options;
 using DownloadAssistant.Utilities;
 using Requests;
 using Requests.Options;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Xml.Linq;
 
 namespace DownloadAssistant.Request
 {
@@ -15,6 +18,8 @@ namespace DownloadAssistant.Request
         private bool _isCleared = false;
         private ChunkHandler _chunkHandler = new();
         private IRequest _request = null!;
+        private WriteMode _writeMode = WriteMode.Append;
+        private int _check = 0;
 
 
         /// <summary>
@@ -63,7 +68,7 @@ namespace DownloadAssistant.Request
             get
             {
                 if (IsChunked)
-                    return _chunkHandler.Requests.Sum(x => x.PartialContentLegth ?? 0);
+                    return _chunkHandler.Requests.Sum(x => x.PartialContentLength ?? 0);
                 else
                     return ((GetRequest)_request).ContentLength;
             }
@@ -110,8 +115,8 @@ namespace DownloadAssistant.Request
             if (Options.Chunks > 1)
                 IsChunked = true;
 
+            _writeMode = Options.WriteMode;
             CreateDirectory();
-            //LoadWrittenBytes();
             CreateRequest();
         }
 
@@ -126,20 +131,6 @@ namespace DownloadAssistant.Request
             else
                 Options = Options with { TempDestination = Options.DestinationPath };
         }
-
-        /*  /// <summary>
-          /// Loads file info if the file exsists
-          /// </summary>
-          /// <exception cref="InvalidOperationException"></exception>
-          private void LoadWrittenBytes()
-          {
-              if (_mode != WriteMode.Append || BytesWritten > 0 || Filename == string.Empty || !Filename.Contains('.'))
-                  return;
-
-              FilePath = Path.Combine(Options.DirectoryPath, Filename);
-              if (File.Exists(FilePath))
-                  BytesWritten = new FileInfo(FilePath).Length;
-          }*/
 
         private void CreateRequest()
         {
@@ -205,18 +196,59 @@ namespace DownloadAssistant.Request
 
         private void OnInfosFetched(GetRequest? request)
         {
-            if (request == null)
+            if (request == null || Filename != null)
                 return;
-
+            if (Interlocked.CompareExchange(ref _check, 1, 0) == 1)
+                return;
+            Filename = request.ContentName;
             if (IsChunked)
                 _chunkHandler.SetInfos(request);
-            if (Filename == null)
+            CheckPartFile(request);
+            
+            SynchronizationContext.Post((o) => Options.InfosFetched?.Invoke((LoadRequest)o!), this);
+            ExcludedExtensions(request.ContentExtension);
+
+           _check = 0;
+        }
+
+        /// <summary>
+        /// Loads file info if the file exsists
+        /// </summary>
+        /// <exception cref="InvalidOperationException"></exception>
+        private void CheckPartFile(GetRequest request)
+        {
+            long byteLength = 0;
+            Destination = Path.Combine(Options.DestinationPath, Filename!);
+            TempDestination = Path.Combine(Options.TempDestination, Filename + ".part");
+            Console.WriteLine(_writeMode);
+            switch (_writeMode)
             {
-                Filename = request.ContentName;
-                Destination = Path.Combine(Options.DestinationPath, Filename);
-                TempDestination = Path.Combine(Options.TempDestination, Filename + ".part");
-                SynchronizationContext.Post((o) => Options.InfosFetched?.Invoke((LoadRequest)o!), this);
-                ExcludedExtensions(request.ContentExtension);
+                case WriteMode.CreateNew:
+                    string fileExt = Path.GetExtension(Filename!);
+                    string contentName = Path.GetFileNameWithoutExtension(Filename!);
+                    for (int i = 1; File.Exists(TempDestination)|| File.Exists(Destination); i++)
+                    {
+                        Filename = contentName + $"({i})" + fileExt;
+                        Destination = Path.Combine(Options.DestinationPath, Filename!);
+                        TempDestination = Path.Combine(Options.TempDestination, Filename + ".part");
+                    }
+                    _writeMode = WriteMode.Append;
+                    break;
+                case WriteMode.Create:
+                    IOManager.Create(Destination);
+                    IOManager.Create(TempDestination);
+                    _writeMode = WriteMode.Append;
+                    break;
+                case WriteMode.Append:
+                    if (File.Exists(TempDestination))
+                        byteLength = new FileInfo(TempDestination).Length;
+                    if (byteLength > (IsChunked? request.FullContentLength??request.PartialContentLength* Options.Chunks:ContentLength))
+                    {
+                        IOManager.Create(TempDestination);
+                        byteLength = 0;
+                    }
+                    _chunkHandler.TrySetBytes(byteLength);
+                    break;
             }
         }
 

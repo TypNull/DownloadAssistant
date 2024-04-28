@@ -104,6 +104,25 @@ namespace DownloadAssistant.Utilities
         }
 
         /// <summary>
+        /// Tries to set written bytes if no bytes were downloaded yet
+        /// </summary>
+        /// <param name="bytes">downloaded bytes</param>
+        /// <returns>sucessfull</returns>
+        public bool TrySetBytes(long bytes)
+        {
+            if (BytesDownloaded != 0 && BytesWritten != 0)
+                return false;
+            BytesWritten = bytes;
+            
+            foreach (var request in Requests)
+            {
+              //  request.PartialContentLegth 
+                //request.(requestValue.FullContentLegth!.Value);
+            }
+            return true;
+        }
+
+        /// <summary>
         /// Add a request that represents a chunk
         /// </summary>
         /// <param name="request">GeRequest that is a chunked part</param>
@@ -112,12 +131,13 @@ namespace DownloadAssistant.Utilities
         /// <summary>
         /// Sets ContentLength to all Chunks based on a <see cref="GetRequest"/>
         /// </summary>
-        /// <param name="request"></param>
-        public void SetInfos(GetRequest request)
+        /// <param name="requestValue"></param>
+        public void SetInfos(GetRequest requestValue)
         {
             if (_infoFetched) return;
             _infoFetched = true;
-            Requests.ToList().ForEach(x => x.SetContentLength(request.FullContentLegth!.Value));
+            foreach (var request in Requests)
+                request.SetContentLength(requestValue.FullContentLength!.Value);
         }
 
         /// <summary>
