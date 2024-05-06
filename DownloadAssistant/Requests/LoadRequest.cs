@@ -3,27 +3,41 @@ using DownloadAssistant.Options;
 using DownloadAssistant.Utilities;
 using Requests;
 using Requests.Options;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Xml.Linq;
 
-namespace DownloadAssistant.Request
+namespace DownloadAssistant.Requests
 {
     /// <summary>
-    /// A <see cref="WebRequest{TOptions, TCompleated}"/> that loads the response as stream and saves it to a file
+    /// Represents a <see cref="WebRequest{TOptions, TCompleated}"/> that loads a response as a stream and saves it to a file.
     /// </summary>
     public class LoadRequest : WebRequest<LoadRequestOptions, string>, IProgressableRequest
     {
-        private int _attemptCounter = 0;
+        /// <summary>
+        /// Indicates whether the request has been cleared.
+        /// </summary>
         private bool _isCleared = false;
-        private ChunkHandler _chunkHandler = new();
-        private IRequest _request = null!;
-        private WriteMode _writeMode = WriteMode.Append;
-        private int _check = 0;
-
 
         /// <summary>
-        /// Range that should be downloaded.
+        /// Handles the chunks of data during the download process.
+        /// </summary>
+        private readonly ChunkHandler _chunkHandler = new();
+
+        /// <summary>
+        /// Represents the current <see cref="IRequest"/> instance.
+        /// </summary>
+        private IRequest _request = null!;
+
+        /// <summary>
+        /// Specifies the mode of writing to the file.
+        /// </summary>
+        private WriteMode _writeMode = WriteMode.Append;
+
+        /// <summary>
+        /// An internal check variable to prevent parallel execution.
+        /// </summary>
+        private int _check = 0;
+
+        /// <summary>
+        /// Gets the range of data that should be downloaded.
         /// </summary>
         public LoadRange Range => Options.Range;
 
@@ -31,22 +45,22 @@ namespace DownloadAssistant.Request
         public override Task Task => _request.Task;
 
         /// <summary>
-        /// Filename of the content that is downloaded
+        /// Gets the filename of the content that is being downloaded.
         /// </summary>
         public string? Filename { get; private set; }
 
         /// <summary>
-        /// Bytes that are written to the temp file
+        /// Gets the number of bytes that have been written to the temporary file.
         /// </summary>
         public long BytesWritten => IsChunked ? _chunkHandler.BytesWritten : ((GetRequest)_request).BytesWritten;
 
         /// <summary>
-        /// Bytes that are downloaded
+        /// Gets the number of bytes that have been downloaded.
         /// </summary>
         public long BytesDownloaded => IsChunked ? _chunkHandler.BytesDownloaded : ((GetRequest)_request).BytesWritten;
 
         /// <summary>
-        /// <see cref="AggregateException"/> that contains the throwed exeptions
+        /// Gets the <see cref="AggregateException"/> that contains the exceptions thrown during the request.
         /// </summary>
         public override AggregateException? Exception
         {
@@ -61,7 +75,7 @@ namespace DownloadAssistant.Request
         }
 
         /// <summary>
-        /// Length of the content that will be downloaded
+        /// Gets the length of the content that will be downloaded.
         /// </summary>
         public long ContentLength
         {
@@ -75,35 +89,35 @@ namespace DownloadAssistant.Request
         }
 
         /// <inheritdoc/>
-        public override int AttemptCounter => _attemptCounter;
+        public override int AttemptCounter => _chunkHandler.Requests.Max(x => x.AttemptCounter);
 
         /// <summary>
-        /// If this <see cref="IRequest"/> downloads in parts
+        /// Gets a value indicating whether this <see cref="LoadRequest"/> downloads in parts.
         /// </summary>
         public bool IsChunked { get; private set; }
 
         /// <summary>
-        /// Path to the download file
+        /// Gets the path to the download file.
         /// </summary>
         public string Destination { get; private set; } = string.Empty;
 
         /// <summary>
-        /// Path to the temporary created file
+        /// Gets the path to the temporary file created during the download process.
         /// </summary>
         public string TempDestination { get; private set; } = string.Empty;
 
         /// <summary>
-        /// Progress to get updates of the download process.
+        /// Gets the progress of the download process.
         /// </summary>
         public Progress<float> Progress => ((IProgressableRequest)_request).Progress;
 
         /// <summary>
-        /// Creates a <see cref="IRequest"/> that can download a file to a temp file
+        /// Initializes a new instance of the <see cref="LoadRequest"/> class.
         /// </summary>
-        /// <param name="url">URL of the file</param>
-        /// <param name="options">Options to costumize</param>
-        /// <exception cref="IndexOutOfRangeException">Throws an exception when the Range is not set right</exception>
-        /// <exception cref="NotSupportedException">Throws an exception when WriteMode is not set right</exception>
+        /// <param name="url">The URL of the file to be downloaded.</param>
+        /// <param name="options">The options to customize the load request.</param>
+        /// <exception cref="IndexOutOfRangeException">Thrown when the start of the range is greater than or equal to the end of the range.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the start of the range is not null and the write mode is set to append.</exception>
         public LoadRequest(string url, LoadRequestOptions? options) : base(url, options)
         {
             if (Range.Start >= Range.End)
@@ -121,7 +135,7 @@ namespace DownloadAssistant.Request
         }
 
         /// <summary>
-        /// Creates requestet files and sets them to Options
+        /// Creates the directories specified in the options and sets them to the options.
         /// </summary>
         private void CreateDirectory()
         {
@@ -132,6 +146,9 @@ namespace DownloadAssistant.Request
                 Options = Options with { TempDestination = Options.DestinationPath };
         }
 
+        /// <summary>
+        /// Creates the <see cref="GetRequest"/> based on the options provided.
+        /// </summary>
         private void CreateRequest()
         {
             GetRequestOptions options = Options.ToGetRequestOptions() with { InfosFetched = OnInfosFetched };
@@ -164,6 +181,12 @@ namespace DownloadAssistant.Request
             AutoStart();
         }
 
+        /// <summary>
+        /// Creates a chunk of the <see cref="GetRequest"/> with the specified index and options.
+        /// </summary>
+        /// <param name="index">The zero-based index of the chunk to be created.</param>
+        /// <param name="options">The options for the get request, including range, filename, and event handlers.</param>
+        /// <returns>A new instance of the <see cref="GetRequest"/> class representing the created chunk.</returns>
         private GetRequest CreateChunk(int index, GetRequestOptions options)
         {
             options = options with
@@ -179,6 +202,11 @@ namespace DownloadAssistant.Request
             return new GetRequest(Url, options);
         }
 
+        /// <summary>
+        /// Handles the state change of the request.
+        /// </summary>
+        /// <param name="sender">The object that triggered the state change event.</param>
+        /// <param name="state">The new state of the request, represented by the <see cref="RequestState"/> enumeration.</param>
         private void OnStateChanged(object? sender, RequestState state)
         {
             if (IsChunked && _request.State == RequestState.Compleated)
@@ -187,6 +215,11 @@ namespace DownloadAssistant.Request
                 State = _request.State;
         }
 
+        /// <summary>
+        /// Handles the failure of the request.
+        /// </summary>
+        /// <param name="request">The failed <see cref="IRequest"/> instance.</param>
+        /// <param name="element">The HTTP response message of the failed request, represented by the <see cref="HttpResponseMessage"/> class.</param>
         private void OnFailure(IRequest? request, HttpResponseMessage? element)
         {
             State = RequestState.Failed;
@@ -194,6 +227,10 @@ namespace DownloadAssistant.Request
             ClearOnFailure();
         }
 
+        /// <summary>
+        /// Handles the fetching of information from the <see cref="GetRequest"/>.
+        /// </summary>
+        /// <param name="request">The <see cref="GetRequest"/> instance from which information is fetched.</param>
         private void OnInfosFetched(GetRequest? request)
         {
             if (request == null || Filename != null)
@@ -204,35 +241,39 @@ namespace DownloadAssistant.Request
             if (IsChunked)
                 _chunkHandler.SetInfos(request);
             CheckPartFile(request);
-            
+
             SynchronizationContext.Post((o) => Options.InfosFetched?.Invoke((LoadRequest)o!), this);
             ExcludedExtensions(request.ContentExtension);
 
-           _check = 0;
+            _check = 0;
         }
 
         /// <summary>
-        /// Loads file info if the file exsists
+        /// Checks the part file and loads its information if it exists.
         /// </summary>
-        /// <exception cref="InvalidOperationException"></exception>
-        private void CheckPartFile(GetRequest request)
+        /// <param name="request">The <see cref="GetRequest"/> instance from which information is fetched.</param>
+        /// <remarks>
+        /// This method checks if a part file exists and loads its information. It also handles file creation based on the write mode.
+        /// </remarks>
+        private async void CheckPartFile(GetRequest request)
         {
             long byteLength = 0;
             Destination = Path.Combine(Options.DestinationPath, Filename!);
             TempDestination = Path.Combine(Options.TempDestination, Filename + ".part");
-            Console.WriteLine(_writeMode);
             switch (_writeMode)
             {
                 case WriteMode.CreateNew:
                     string fileExt = Path.GetExtension(Filename!);
                     string contentName = Path.GetFileNameWithoutExtension(Filename!);
-                    for (int i = 1; File.Exists(TempDestination)|| File.Exists(Destination); i++)
+                    for (int i = 1; File.Exists(TempDestination) || File.Exists(Destination); i++)
                     {
                         Filename = contentName + $"({i})" + fileExt;
                         Destination = Path.Combine(Options.DestinationPath, Filename!);
                         TempDestination = Path.Combine(Options.TempDestination, Filename + ".part");
                     }
                     _writeMode = WriteMode.Append;
+                    IOManager.Create(Destination);
+                    IOManager.Create(TempDestination);
                     break;
                 case WriteMode.Create:
                     IOManager.Create(Destination);
@@ -242,16 +283,21 @@ namespace DownloadAssistant.Request
                 case WriteMode.Append:
                     if (File.Exists(TempDestination))
                         byteLength = new FileInfo(TempDestination).Length;
-                    if (byteLength > (IsChunked? request.FullContentLength??request.PartialContentLength* Options.Chunks:ContentLength))
-                    {
+                    if (byteLength > (IsChunked ? request.FullContentLength ?? (request.PartialContentLength * Options.Chunks) : ContentLength))
                         IOManager.Create(TempDestination);
-                        byteLength = 0;
-                    }
-                    _chunkHandler.TrySetBytes(byteLength);
+                    else
+                        await _chunkHandler.TrySetBytesAsync(byteLength);
                     break;
             }
         }
 
+        /// <summary>
+        /// Checks if the content extension is excluded.
+        /// </summary>
+        /// <param name="contentExtension">The extension of the content to check.</param>
+        /// <remarks>
+        /// This method checks if the provided content extension is in the list of excluded extensions. If it is, an exception is added and the failure handler is invoked.
+        /// </remarks>
         private void ExcludedExtensions(string contentExtension)
         {
             if (Options.ExcludedExtensions != null && !string.IsNullOrWhiteSpace(contentExtension) && Options.ExcludedExtensions.Any(contentExtension.EndsWith))
@@ -261,6 +307,14 @@ namespace DownloadAssistant.Request
             }
         }
 
+        /// <summary>
+        /// Handles the completion of the request.
+        /// </summary>
+        /// <param name="request">The <see cref="IRequest"/> instance that has completed.</param>
+        /// <param name="_">This parameter is not used.</param>
+        /// <remarks>
+        /// This method handles the completion of the request. If the request is chunked, it starts merging the chunks. If the request is not chunked, it moves the temporary file to the destination.
+        /// </remarks>
         private async void OnCompletion(IRequest? request, string? _)
         {
             if (request == null)
@@ -278,14 +332,22 @@ namespace DownloadAssistant.Request
                 TempToDestination();
         }
 
+        /// <summary>
+        /// Transfers the temporary file to the final destination.
+        /// </summary>
         private void TempToDestination()
         {
+            if (Interlocked.CompareExchange(ref _check, 1, 0) == 1)
+                return;
             IOManager.Move(TempDestination, Destination);
-            ((IProgress<float>)Progress).Report(1f);
             State = RequestState.Compleated;
+            ((IProgress<float>)Progress).Report(1f);
             SynchronizationContext.Post((o) => Options.RequestCompleated?.Invoke((IRequest)o!, Destination), this);
         }
 
+        /// <summary>
+        /// Resets the failure state of the request and deletes temporary files if necessary.
+        /// </summary>
         private void ClearOnFailure()
         {
             if (!Options.DeleteTmpOnFailure || _isCleared)
@@ -295,13 +357,19 @@ namespace DownloadAssistant.Request
                 File.Delete(TempDestination);
             if (File.Exists(Destination) && new FileInfo(Destination).Length == 0)
                 File.Delete(Destination);
-            _chunkHandler.DeleteChunks();
+          _=  _chunkHandler.DeleteChunkFiles(_chunkHandler.RequestContainer.Length);
         }
 
-
+        /// <summary>
+        /// Asynchronously starts the request.
+        /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
         async Task IRequest.StartRequestAsync() => await RunRequestAsync();
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Executes the request asynchronously.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation. The task result contains a <see cref="Request{TOptions, TCompleated, TFailed}.RequestReturn"/> object.</returns>
         protected override async Task<RequestReturn> RunRequestAsync()
         {
             await Task.Yield();
@@ -313,7 +381,7 @@ namespace DownloadAssistant.Request
         }
 
         /// <summary>
-        /// Start the <see cref="LoadRequest"/> if it is not yet started or paused.
+        /// Starts the <see cref="LoadRequest"/> if it hasn't started or is paused.
         /// </summary>
         public override void Start()
         {
@@ -322,25 +390,34 @@ namespace DownloadAssistant.Request
         }
 
         /// <summary>
-        /// Set the <see cref="LoadRequest"/> on hold.
+        /// Pauses the <see cref="LoadRequest"/>.
         /// </summary>
         public override void Pause()
         {
             base.Pause();
             _request.Pause();
         }
-        /// <inheritdoc/>
+
+        /// <summary>
+        /// Cancels the <see cref="LoadRequest"/>.
+        /// </summary>
         public override void Cancel()
         {
             base.Cancel();
             _request.Cancel();
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Blocks the current thread until the <see cref="LoadRequest"/> completes execution.
+        /// </summary>
         public override void Wait() => Task.Wait();
 
-        ///<inheritdoc/>
+        /// <summary>
+        /// Releases all resources used by the <see cref="LoadRequest"/>.
+        /// </summary>
+#pragma warning disable CA1816
         public override void Dispose()
+#pragma warning restore CA1816
         {
             _request.Dispose();
             base.Dispose();

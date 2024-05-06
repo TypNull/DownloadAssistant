@@ -1,42 +1,48 @@
-﻿using DownloadAssistant.Request;
+﻿using DownloadAssistant.Base;
+using DownloadAssistant.Requests;
 using Requests;
 using Requests.Options;
+using System.Diagnostics;
 
 namespace DownloadAssistant.Utilities
 {
     /// <summary>
-    /// Handels and merges the chunks
+    /// Handles and merges the chunks of a file download.
     /// </summary>
     public class ChunkHandler
     {
+        private GetRequest? _reportetRequest;
+
         /// <summary>
-        /// Container for all chunks
+        /// Container for all chunks of the file download.
         /// </summary>
         public ProgressableContainer<GetRequest> RequestContainer { get; } = new();
 
         /// <summary>
-        /// Bytes that are written to the temp file
+        /// The number of bytes that have been written to the temporary file.
         /// </summary>
         public long BytesWritten { get; private set; } = 0;
 
         /// <summary>
-        /// Bytes that are written all chunk files
+        /// The total number of bytes that have been written to all chunk files.
         /// </summary>
         public long BytesDownloaded => Requests.Sum(x => x.BytesWritten);
 
         /// <summary>
-        /// Gets all Requests that are in the <see cref="RequestContainer"/>
+        /// Gets all the requests that are in the <see cref="RequestContainer"/>.
         /// </summary>
-        public IReadOnlyList<GetRequest> Requests => RequestContainer.ToList();
+        public GetRequest[] Requests => RequestContainer.ToArray();
         private readonly List<GetRequest> _copied = new();
 
         private bool _infoFetched = false;
 
         private int _isCopying = 0;
+
         /// <summary>
-        /// Merges all chunked parts of a file into one big file.
+        /// Merges all chunked parts of a file into one large file.
         /// </summary>
-        /// <returns>A awaitable Task</returns>
+        /// <param name="destination">The path to the destination file.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains a boolean value indicating whether all chunks were successfully merged.</returns>
         public async Task<bool> StartMergeTo(string destination)
         {
             bool allMerged = false;
@@ -55,13 +61,18 @@ namespace DownloadAssistant.Utilities
             Interlocked.CompareExchange(ref _isCopying, 0, 1);
             if (Requests.All((s) => s.State == RequestState.Compleated))
             {
-                if (Requests.Count == _copied.Count)
+                if (Requests.Length == _copied.Count)
                     allMerged = true;
                 else allMerged = await StartMergeTo(destination);
             }
             return allMerged;
         }
 
+        /// <summary>
+        /// Merges the chunks of data into the specified destination.
+        /// </summary>
+        /// <param name="destination">The destination file path where the chunks will be merged.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         private async Task MergeChunks(string destination)
         {
             //FileStream to merge the chunked files
@@ -69,7 +80,7 @@ namespace DownloadAssistant.Utilities
             try
             {
                 outputStream = new(destination, FileMode.Append);
-                for (int i = 0; i < Requests.Count; i++)
+                for (int i = 0; i < Requests.Length; i++)
                 {
                     if (Requests[i].State != RequestState.Compleated)
                         break;
@@ -93,6 +104,12 @@ namespace DownloadAssistant.Utilities
             }
         }
 
+        /// <summary>
+        /// Writes a chunk of data from the specified path to the output stream.
+        /// </summary>
+        /// <param name="path">The path of the chunk to be written.</param>
+        /// <param name="outputStream">The output stream where the chunk will be written.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         private async Task WriteChunkToDestination(string path, FileStream outputStream)
         {
             FileStream inputStream = File.OpenRead(path);
@@ -104,59 +121,120 @@ namespace DownloadAssistant.Utilities
         }
 
         /// <summary>
-        /// Tries to set written bytes if no bytes were downloaded yet
+        /// Attempts to set the number of written bytes if no bytes have been downloaded yet.
         /// </summary>
-        /// <param name="bytes">downloaded bytes</param>
-        /// <returns>sucessfull</returns>
-        public bool TrySetBytes(long bytes)
-        {
-            if (BytesDownloaded != 0 && BytesWritten != 0)
-                return false;
-            BytesWritten = bytes;
+        /// <param name="bytes">The number of downloaded bytes.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains a boolean value indicating whether the operation was successful.</returns>
+         public async Task<bool> TrySetBytesAsync(long bytes)
+         {
+             if (BytesWritten != 0 || bytes == 0)
+                 return false;
+
+             var (count, hasRest) = CalculatePartialContentLength(bytes);
             
-            foreach (var request in Requests)
+             ProcessRequestsCompletion(count);
+
+             BytesWritten = bytes;
+
+             if (hasRest)
+                 PauseAndReplaceRequest(count, bytes);
+
+             await DeleteChunkFiles(count);
+
+             return true;
+         }
+       
+        /// <summary>
+        /// Calculates the partial content length based on the number of bytes.
+        /// </summary>
+        /// <param name="bytes">The number of bytes to calculate the partial content length for.</param>
+        /// <returns>A tuple containing the count of requests and the remaining bytes.</returns>
+        private (int count, bool rest) CalculatePartialContentLength(long bytes)
+        {
+            long rest = bytes;
+            int count = 0;
+            while (true)
             {
-              //  request.PartialContentLegth 
-                //request.(requestValue.FullContentLegth!.Value);
+                long? partial = RequestContainer[count].PartialContentLength;
+                if (partial == null)
+                    LoadRange.ToAbsolut(RequestContainer[count].StartOptions.Range, _reportetRequest!.FullContentLength!.Value, out partial);
+                if (rest < partial)
+                    break;
+                count++;
+                rest -= partial!.Value;
             }
-            return true;
+            return (count, rest!=0);
         }
 
         /// <summary>
-        /// Add a request that represents a chunk
+        /// Processes the requests up to the given count.
         /// </summary>
-        /// <param name="request">GeRequest that is a chunked part</param>
+        /// <param name="count">The number of requests to process.</param>
+        private void ProcessRequestsCompletion(int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                _copied.Add(RequestContainer[i]);
+                _ = RequestContainer[i].RunToCompleatedAsync();
+            }
+        }
+
+        /// <summary>
+        /// Pauses and replaces the request at the given index with a new request.
+        /// </summary>
+        /// <param name="count">The index of the request to replace.</param>
+        /// <param name="bytes">The number of bytes for the new request.</param>
+        private void PauseAndReplaceRequest(int count, long bytes)
+        {
+            GetRequest request = RequestContainer[count];
+            request.Pause();
+            RequestContainer[count] = new GetRequest(RequestContainer[count].Url, RequestContainer[count].StartOptions with
+            {
+                MinByte = bytes,
+                WriteMode = Options.WriteMode.Create
+            });
+            request.Dispose();
+        }
+
+        /// <summary>
+        /// Deletes the files associated with the requests up to the given count.
+        /// </summary>
+        /// <param name="count">The number of requests whose files should be deleted.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        public async Task DeleteChunkFiles(int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                await RequestContainer[i].Task;
+                try
+                {
+                    if (File.Exists(RequestContainer[i].FilePath))
+                        File.Delete(RequestContainer[i].FilePath);
+                }
+                catch (Exception) { }
+            }
+        }
+
+
+
+        /// <summary>
+        /// Adds a <see cref="GetRequest"/> that represents a chunk to the RequestContainer.
+        /// </summary>
+        /// <param name="request">The <see cref="GetRequest"/> that represents a chunked part of the data.</param>
         public void Add(GetRequest request) => RequestContainer.Add(request);
 
         /// <summary>
-        /// Sets ContentLength to all Chunks based on a <see cref="GetRequest"/>
+        /// Sets the ContentLength for all chunks based on a specified <see cref="GetRequest"/>.
         /// </summary>
-        /// <param name="requestValue"></param>
+        /// <param name="requestValue">The <see cref="GetRequest"/> used to set the ContentLength for all chunks.</param>
         public void SetInfos(GetRequest requestValue)
         {
             if (_infoFetched) return;
             _infoFetched = true;
-            foreach (var request in Requests)
-                request.SetContentLength(requestValue.FullContentLength!.Value);
-        }
-
-        /// <summary>
-        /// Deletes all files that were created by the chunks
-        /// </summary>
-        public void DeleteChunks()
-        {
-            foreach (GetRequest request in Requests)
-            {
-                try
-                {
-                    if (File.Exists(request.FilePath))
-                        File.Delete(request.FilePath);
-                }
-                catch (Exception)
-                {
-                }
-            }
+            _reportetRequest = requestValue;
+            if (requestValue.FullContentLength.HasValue)
+                foreach (GetRequest request in Requests)
+                    request.SetContentLength(requestValue.FullContentLength.Value);
         }
     }
-
 }

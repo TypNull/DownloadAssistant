@@ -28,13 +28,11 @@ _Tested with more than 5000 simultaneously HTTP Requests and file sized over 80G
 * [Features](#features)
 * [Information](#tech)
 * [Setup](#how-to-use)
-* [ToDo](#TODO)
 
 ## Features
-At the moment:
 - **StatusRequest:** Calls a HEAD request and returns a response message with the header information.🔎
 - **SiteRequest:** Is parsing a the HTML body of a website and list all references and files. 🔖
-- **LoadRequest:** To download the response content into a file.
+- **GetRequest:** To download the response content into a file.
   - This is an HTTP file downloader with these functions:
   - *Pause* and *Start* a download ▶
   - Get the *filename* and *extension* from the server 📥
@@ -43,26 +41,33 @@ At the moment:
   - Can set path and filename
   - Set download speed limit
   - Download a specified range of a file 🔛
+- **LoadRequest** Extends the GetRequest
   - Download a file into chunks ⛓️
   - Exclude extensions for safety _(.exe; .bat; etc...)_ 🛡️
-  - Note!  
 
-## Tech
+## Information
 It is available on [Github](https://github.com/TypNull/DownloadAssistant):
 - Repository: https://github.com/TypNull/DownloadAssistant
 - Wiki: https://github.com/TypNull/DownloadAssistant/wiki
 - Issues: https://github.com/TypNull/DownloadAssistant/issues
 
 
-## Installation
+## 📦 Installation
 
-Use [NuGet](https://img.shields.io/nuget/dt/Shard.DownloadAssistant) Packagemanager to install the actual version for your project.
+You can install `Shard.DownloadAssistant` using  [NuGet](https://img.shields.io/nuget/dt/Shard.DownloadAssistant) Package Manager in Visual Studio. 
 
-## How to use
+Here are the steps:
+
+1. Open your project in Visual Studio.
+2. Navigate to `Tools > NuGet Package Manager > Manage NuGet Packages for Solution...`.
+3. Search for `Shard.DownloadAssistant`.
+4. Click on `Install`.
+
+## Usage
 
 Import the Library.
 ```cs
-using DownloadAssistant.Request;
+using DownloadAssistant.Requests;
 ```
 Then create a new `LoadRequest`.
 This downloads a file into the download's folder of the PC with a ".part" file and uses the name that the server provides.
@@ -73,23 +78,36 @@ new LoadRequest("[Your URL]"); // e.g. https://www.sample-videos.com/video123/mk
 To set options on the `Request` create a `RequestOption` or for a `LoadRequest` a `LoadRequestOption`.
 ```cs
 // Create an option for a LoadRequest
-  LoadRequestOptions requestOptions = new()
-        {
-            // Sets the filename of the download without the extension
-            // The extension will be added automatically!
-            FileName = "downloadfile", 
-            // If this download has priority (default is false)
-            Priority = RequestPriority.High, 
-            //(default is download folder)
-            DestinationPath = "C:\\Users\\[Your Username]\\Desktop", 
-            // If this Request contains a heavy request put it in second thread (default is false)
-            IsDownload = true,
-            //If the downloader should Override, Create a new file or Append (default is Append)
-            //Resume function only available with append!
-            Mode = LoadMode.Create,
-            //Chunk a file to download faster
-            Chunks = 3
-        };
+  LoadRequestOptions requestOptions = new LoadRequestOptions
+{
+    // Sets the filename of the download without the extension
+    // The extension will be added automatically!
+    FileName = "downloadfile.*",
+    
+    // If this download has priority (default is Normal)
+    Priority = RequestPriority.High,
+    
+    // Specifies the destination path for the downloaded file
+    // (default is the download folder)
+    DestinationPath = @"C:\Users\[Your Username]\Desktop",
+    
+    // If this request contains a heavy workload, put it in a second thread (default is false)
+    IsDownload = true,
+    
+    // Determines whether the downloader should override an existing file, create a new file, or append to an existing file (default is Append)
+    // Resume function is only available with append mode!
+    Mode = LoadMode.Create,
+    
+    // Chunk a file to download faster (3 chunks in this case)
+    Chunks = 3,
+    
+    // Merge the chunked files faster while making progress
+    MergeWhileProgress = true,
+    
+    // Notify when the request completes successfully
+    RequestCompleated = (IRequest? req, string? url) => Console.WriteLine($"Finished successfully: {url}")
+};
+
 ```
 And use it in the request.
 ```cs
@@ -101,12 +119,14 @@ To wait on the request, use *await* or *Wait();*.
 await new LoadRequest("https://speed.hetzner.de/100MB.bin",requestOptions).Task;
 //new LoadRequest("https://speed.hetzner.de/100MB.bin",requestOptions).Wait();
 ```
-## TODO:
-The function to restart a download with previously downloaded length for LoadRequest, when WriteMode is set to Append, has not been implemented yet.
 
-## License
+## 🌟 Contributing
 
-MIT
+If you'd like to contribute to this library, submit a pull request or open an issue. We appreciate your help!
+
+## 📜 License
+
+**DownloadAssistant** is licensed under the MIT license. 
 
 ## **Free Code** and **Free to Use**
 #### Have fun!

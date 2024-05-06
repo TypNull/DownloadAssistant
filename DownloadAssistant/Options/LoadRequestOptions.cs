@@ -1,17 +1,18 @@
 ﻿using DownloadAssistant.Base;
-using DownloadAssistant.Request;
+using DownloadAssistant.Requests;
 using DownloadAssistant.Utilities;
 using Requests.Options;
 
 namespace DownloadAssistant.Options
 {
     /// <summary>
-    /// A Class to hold the options for a <see cref="LoadRequest"/> object and to modifies it.
+    /// A class to hold the options for a <see cref="LoadRequest"/> object and modify it.
     /// </summary>
     public record LoadRequestOptions : WebRequestOptions<string>
     {
         /// <summary>
-        /// Filename of the file that will be created and be written to.
+        /// Gets or sets the filename of the file to be created and written to.
+        /// Invalid filename characters are removed.
         /// </summary>
         public string Filename
         {
@@ -21,45 +22,49 @@ namespace DownloadAssistant.Options
         private string _filename = string.Empty;
 
         /// <summary>
-        /// Sets the download range of th<see cref="LoadRequest"/> 
-        /// Start can not be used with LoadMode.Append
+        /// Gets the download range of the <see cref="LoadRequest"/>. 
+        /// Note: Start cannot be used with LoadMode.Append.
         /// </summary>
         public LoadRange Range { get; init; }
 
         /// <summary>
-        /// Raised when Fileinfos are fetched from the server
+        /// Event raised when file information is fetched from the server.
         /// </summary>
         public Notify<LoadRequest>? InfosFetched { get; init; }
 
         /// <summary>
-        /// Extensions that are not allowed.
+        /// Gets or sets the minimum byte length to restart the request and download only partially. Default is 2Mb.
+        /// </summary>
+        public uint MinReloadSize { get; set; } = 1048576 * 2; //2Mb
+
+        /// <summary>
+        /// Gets or sets the extensions that are not allowed.
         /// </summary>
         public string[] ExcludedExtensions { get; set; } = Array.Empty<string>();
 
         /// <summary>
-        /// The maximum of byte that can be downloaded by the <see cref="LoadRequest"/> per second.
+        /// Gets or sets the maximum number of bytes that can be downloaded by the <see cref="LoadRequest"/> per second.
         /// </summary>
         public long? MaxBytesPerSecond { get => _maxBytesPerSecond; set => _maxBytesPerSecond = value > 1 ? value : null; }
         private long? _maxBytesPerSecond = null;
 
         /// <summary>
-        /// Set the value to false if the server does not support this feature
+        /// Gets or sets a value indicating whether the server supports the HEAD request. Default is true.
         /// </summary>
         public bool SupportsHeadRequest { get; set; } = true;
 
         /// <summary>
-        /// Length of the stream buffer
-        /// Default is 1024 (8kb)
+        /// Gets or sets the length of the stream buffer. Default is 1024 (8kb).
         /// </summary>
         public int BufferLength { get; set; } = 1024;
 
         /// <summary>
-        /// File writing mode.
+        /// Gets or sets the file writing mode. Default is WriteMode.Append.
         /// </summary>
         public WriteMode WriteMode { get; set; } = WriteMode.Append;
 
         /// <summary>
-        /// Path to the diriectory where the temp file should be stored.
+        /// Gets or sets the path to the directory where the temporary file should be stored.
         /// Default is the <see cref="DestinationPath"/>.
         /// </summary>
         public string TempDestination
@@ -78,7 +83,7 @@ namespace DownloadAssistant.Options
         private string _temporaryPath = string.Empty;
 
         /// <summary>
-        /// Path to the directory where the file should be stored.
+        /// Gets or sets the path to the directory where the file should be stored.
         /// </summary>
         public string DestinationPath
         {
@@ -93,32 +98,30 @@ namespace DownloadAssistant.Options
         private string _destinationPath = IOManager.GetDownloadFolderPath() ?? Environment.GetFolderPath(Environment.SpecialFolder.InternetCache);
 
         /// <summary>
-        /// Chunks the <see cref="LoadRequest"/> and partial downloads the files.
-        /// Min value is has to be 2
-        /// <para>(Only if server supports it)</para>
+        /// Gets or sets the number of chunks for the <see cref="LoadRequest"/> to partially download the files.
+        /// Note: Minimum value has to be 2. Only applicable if the server supports it.
         /// </summary>
         public int Chunks { get; set; }
 
         /// <summary>
-        /// Merges the chunked files on the fly and not at the end.
+        /// Gets or sets a value indicating whether to merge the chunked files on the fly and not at the end.
         /// </summary>
         public bool MergeWhileProgress { get; set; }
 
-
         /// <summary>
-        /// Delete temporary files if the <see cref="LoadRequest"/> failed.
+        /// Gets or sets a value indicating whether to delete temporary files if the <see cref="LoadRequest"/> fails.
         /// </summary>
         public bool DeleteTmpOnFailure { get; set; }
 
         /// <summary>
-        /// Default Constructor of <see cref="LoadRequestOptions"/>.
+        /// Initializes a new instance of the <see cref="LoadRequestOptions"/> class.
         /// </summary>
         public LoadRequestOptions() { }
 
         /// <summary>
-        /// Copy constructor of <see cref="LoadRequestOptions"/>
+        /// Initializes a new instance of the <see cref="LoadRequestOptions"/> class by copying an existing instance.
         /// </summary>
-        /// <param name="options">Options to copy</param>
+        /// <param name="options">The <see cref="LoadRequestOptions"/> instance to copy.</param>
         protected LoadRequestOptions(LoadRequestOptions options) : base(options)
         {
             MergeWhileProgress = options.MergeWhileProgress;
@@ -132,13 +135,15 @@ namespace DownloadAssistant.Options
             MaxBytesPerSecond = options.MaxBytesPerSecond;
             SupportsHeadRequest = options.SupportsHeadRequest;
             InfosFetched = options.InfosFetched;
-            Filename = options.Filename;
+            _filename = options.Filename;
+            ExcludedExtensions = options.ExcludedExtensions;
+            MinReloadSize = options.MinReloadSize;
         }
 
         /// <summary>
-        /// Converts a <see cref="LoadRequestOptions"/> to a <see cref="GetRequestOptions"/> object
+        /// Converts a <see cref="LoadRequestOptions"/> instance to a <see cref="GetRequestOptions"/> instance.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A <see cref="GetRequestOptions"/> instance with properties copied from this instance.</returns>
         public GetRequestOptions ToGetRequestOptions() => new()
         {
             Range = Range,
@@ -157,7 +162,8 @@ namespace DownloadAssistant.Options
             Priority = Priority,
             Headers = Headers,
             Timeout = Timeout,
-            WriteMode = WriteMode
+            WriteMode = WriteMode,
+            MinReloadSize = MinReloadSize
         };
     }
 }

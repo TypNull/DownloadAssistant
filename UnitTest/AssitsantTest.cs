@@ -1,4 +1,4 @@
-using DownloadAssistant.Request;
+using DownloadAssistant.Requests;
 using Requests;
 using Requests.Options;
 
@@ -15,7 +15,6 @@ namespace UnitTest
                 DirectoryPath = "D:\\Bibliothek\\Downloads\\Test",
                 Filename = "GetRequest.test",
                 MaxBytesPerSecond = 100000,
-
             });
 
 
@@ -43,20 +42,18 @@ namespace UnitTest
         [TestMethod]
         public async Task PartialRequestTest()
         {
-            RequestHandler.MainRequestHandlers[0].StaticDegreeOfParallelism = 10;
-            LoadRequest loadRequest = new("https://www.openprinting.org/download/testfiles/pclm-test20210804.tar.xz", new()
+            RequestHandler.MainRequestHandlers[0].StaticDegreeOfParallelism = 3;
+            LoadRequest loadRequest = new("https://www.learningcontainer.com/download/sample-large-zip-file/?wpdmdl=1639&refresh=6634d2642fcb31714737764", new()
             {
                 DestinationPath = "D:\\Bibliothek\\Downloads\\Test",
-                Chunks=10,
-                MergeWhileProgress= true,
-                Filename = "LoadRequest.test",
-                WriteMode = DownloadAssistant.Options.WriteMode.Append
+                Chunks = 7,
+                MergeWhileProgress = true,
+                WriteMode = DownloadAssistant.Options.WriteMode.Append,
+                RequestCompleated = (IRequest? req, string? url) => Console.WriteLine($"Finished successful: {url}"),
             });
-            loadRequest.StateChanged += (object? sender, RequestState e) => Console.WriteLine($"State Changed: {e} | {(sender as GetRequest)?.Url}");
-            await Task.Delay(3000);
+            loadRequest.StateChanged += (object? sender, RequestState e) => Console.WriteLine($"State Changed: {e} | {(sender as GetRequest)?.Exception?.Message}");
+            await Task.Delay(19000);
             Console.WriteLine("Task finished");
         }
-
-
     }
 }

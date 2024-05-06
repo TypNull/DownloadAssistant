@@ -5,26 +5,24 @@ using System.Security;
 namespace DownloadAssistant.Media
 {
     /// <summary>
-    /// class with huge Dictionary of MimeTypes and extensions
+    /// A static class that maps MIME types to file extensions and vice versa.
     /// </summary>
     public static class MimeTypeMap
     {
-        private const string Dot = ".";
-        private const string QuestionMark = "?";
         private const string DefaultMimeType = "application/octet-stream";
         private static readonly Lazy<IDictionary<string, string>> _mappings = new(BuildMappings);
 
         /// <summary>
-        /// Gets the default extension aof an mimeType
+        /// Gets the default file extension for a given MIME type.
         /// </summary>
-        /// <param name="mimeType"></param>
-        /// <returns>A Extension as string</returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="ObjectDisposedException"></exception>
-        /// <exception cref="SecurityException"></exception>
-        /// <exception cref="NotSupportedException"></exception>
-        /// <exception cref="IOException"></exception>
-        /// <exception cref="UnauthorizedAccessException"></exception>
+        /// <param name="mimeType">The MIME type to get the extension for.</param>
+        /// <returns>The default file extension for the given MIME type.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="mimeType"/> is null.</exception>
+        /// <exception cref="ObjectDisposedException">Thrown when the registry key is closed (Windows only).</exception>
+        /// <exception cref="SecurityException">Thrown when the user does not have the permissions required to read the registry key (Windows only).</exception>
+        /// <exception cref="NotSupportedException">Thrown when the operating system is not Windows.</exception>
+        /// <exception cref="IOException">Thrown when an I/O error occurs (Windows only).</exception>
+        /// <exception cref="UnauthorizedAccessException">Thrown when the user does not have the necessary registry rights (Windows only).</exception>      
         public static string GetDefaultExtension(string mimeType)
         {
             string result = string.Empty;
@@ -44,6 +42,10 @@ namespace DownloadAssistant.Media
             return result;
         }
 
+        /// <summary>
+        /// Builds the mappings between MIME types and file extensions.
+        /// </summary>
+        /// <returns>A dictionary of MIME types and their corresponding file extensions.</returns>
         private static IDictionary<string, string> BuildMappings()
         {
             Dictionary<string, string> mappings = new(StringComparer.OrdinalIgnoreCase) {
@@ -758,54 +760,54 @@ namespace DownloadAssistant.Media
         }
 
         /// <summary>
-        /// Tries to get the type of the MIME from the provided string.
+        /// Tries to get the MIME type for a given file name or extension.
         /// </summary>
-        /// <param name="str">The filename or extension.</param>
-        /// <param name="mimeType">The variable to store the MIME type.</param>
-        /// <returns>The MIME type.</returns>
-        /// <exception cref="ArgumentNullException" />
+        /// <param name="str">The file name or extension to get the MIME type for.</param>
+        /// <param name="mimeType">When this method returns, contains the MIME type, if found; otherwise, null.</param>
+        /// <returns><c>true</c> if a MIME type was found; otherwise, <c>false</c>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="str"/> is null.</exception>
         public static bool TryGetMimeType(string str, out string mimeType)
         {
             if (str == null)
                 throw new ArgumentNullException(nameof(str));
 
-            int indexQuestionMark = str.IndexOf(QuestionMark, StringComparison.Ordinal);
+            int indexQuestionMark = str.IndexOf('?', StringComparison.Ordinal);
             if (indexQuestionMark != -1)
                 str = str.Remove(indexQuestionMark);
 
-            if (!str.StartsWith(Dot))
+            if (!str.StartsWith('.'))
             {
-                int index = str.LastIndexOf(Dot);
+                int index = str.LastIndexOf('.');
                 if (index != -1 && str.Length > index + 1)
                     str = str[(index + 1)..];
-                str = Dot + str;
+                str = '.' + str;
             }
 
             return _mappings.Value.TryGetValue(str, out mimeType!);
         }
 
         /// <summary>
-        /// Gets the type of the MIME from the provided string.
+        /// Gets the MIME type for a given file name or extension.
         /// </summary>
-        /// <param name="str">The filename or extension.</param>
-        /// <returns>The MIME type.</returns>
-        /// <exception cref="ArgumentNullException" />
+        /// <param name="str">The file name or extension to get the MIME type for.</param>
+        /// <returns>The MIME type, if found; otherwise, "application/octet-stream".</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="str"/> is null.</exception>
         public static string GetMimeType(string str) => TryGetMimeType(str, out string? result) ? result : DefaultMimeType;
 
         /// <summary>
-        /// Gets the extension from the provided MINE type.
+        /// Gets the file extension for a given MIME type.
         /// </summary>
-        /// <param name="mimeType">Type of the MIME.</param>
-        /// <param name="throwErrorIfNotFound">if set to <c>true</c>, throws error if extension's not found.</param>
-        /// <returns>The extension.</returns>
-        /// <exception cref="ArgumentNullException" />
-        /// <exception cref="ArgumentException" />
+        /// <param name="mimeType">The MIME type to get the extension for.</param>
+        /// <param name="throwErrorIfNotFound">If set to <c>true</c>, throws an exception if the extension is not found.</param>
+        /// <returns>The file extension for the given MIME type, or an empty string if the extension is not found and <paramref name="throwErrorIfNotFound"/> is set to <c>false</c>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="mimeType"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="mimeType"/> starts with a dot or when the MIME type is not registered in the mappings and <paramref name="throwErrorIfNotFound"/> is set to <c>true</c>.</exception>
         public static string GetExtension(string mimeType, bool throwErrorIfNotFound = true)
         {
             if (mimeType == null)
                 throw new ArgumentNullException(nameof(mimeType));
 
-            if (mimeType.StartsWith(Dot))
+            if (mimeType.StartsWith('.'))
                 throw new ArgumentException("Requested mime type is not valid: " + mimeType);
 
             if (_mappings.Value.TryGetValue(mimeType, out string? extension))

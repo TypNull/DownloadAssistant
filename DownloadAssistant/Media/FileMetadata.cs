@@ -4,7 +4,7 @@ using System.Text;
 namespace DownloadAssistant.Media
 {
     /// <summary>
-    /// Class to build a file
+    /// Class to build a file metadata.
     /// </summary>
     public class FileMetadata
     {
@@ -12,18 +12,20 @@ namespace DownloadAssistant.Media
         private readonly Uri _uri;
 
         /// <summary>
-        /// Name of the file
+        /// Gets the name of the file.
         /// </summary>
         public string FileName { get; private set; } = string.Empty;
+
         /// <summary>
-        /// Extension of the file
+        /// Gets the extension of the file.
         /// </summary>
         public string Extension { get; private set; } = string.Empty;
+
         /// <summary>
-        /// Contructor needs
+        /// Initializes a new instance of the <see cref="FileMetadata"/> class.
         /// </summary>
-        /// <param name="headers">Http headers of the response</param>
-        /// <param name="uri">The Url to the file</param>
+        /// <param name="headers"><see cref="HttpContentHeaders"/> of the response.</param>
+        /// <param name="uri">The URL to the file.</param>
         public FileMetadata(HttpContentHeaders headers, Uri uri)
         {
             _headers = headers;
@@ -33,7 +35,7 @@ namespace DownloadAssistant.Media
         }
 
         /// <summary>
-        /// Set the extension of a request file
+        /// Sets the extension of a request file based on the content type or the URI.
         /// </summary>
         public void SetExtension()
         {
@@ -45,7 +47,7 @@ namespace DownloadAssistant.Media
         }
 
         /// <summary>
-        /// Generates the Filename from the header
+        /// Generates the filename from the header or the URI.
         /// </summary>
         private void SetFilename()
         {
@@ -62,10 +64,10 @@ namespace DownloadAssistant.Media
         }
 
         /// <summary>
-        /// Builds the setted Filename
+        /// Builds the filename based on the preset filename or the generated filename.
         /// </summary>
-        /// <param name="preSetFilename">Name that was pre set</param>
-        /// <returns></returns>
+        /// <param name="preSetFilename">The preset filename.</param>
+        /// <returns>The built filename.</returns>
         public string BuildFilename(string preSetFilename)
         {
             string fileName = preSetFilename;
@@ -86,13 +88,11 @@ namespace DownloadAssistant.Media
             return fileName;
         }
 
-
-
         /// <summary>
-        /// Removes all invalid Characters for a filename out of a string
+        /// Removes all invalid characters for a filename out of a string.
         /// </summary>
-        /// <param name="input">input filename</param>
-        /// <returns>Clreared filename</returns>
+        /// <param name="input">The input filename.</param>
+        /// <returns>The cleared filename.</returns>
         public static string RemoveInvalidFileNameChars(string input)
         {
             StringBuilder fileBuilder = new(input);
@@ -100,7 +100,5 @@ namespace DownloadAssistant.Media
                 fileBuilder.Replace(c.ToString(), string.Empty);
             return fileBuilder.ToString();
         }
-
-
     }
 }

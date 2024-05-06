@@ -1,11 +1,5 @@
 ﻿namespace DownloadAssistant.Base
-
 {
-    using System;
-    using System.IO;
-    using System.Threading;
-    using System.Threading.Tasks;
-
     /// <summary>
     /// A Stream implementation that throttles the process
     /// </summary>

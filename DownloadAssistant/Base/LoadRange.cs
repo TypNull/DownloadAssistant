@@ -1,15 +1,16 @@
 ﻿namespace DownloadAssistant.Base
 {
     /// <summary>
-    /// Sets and Gets the download range of a file if supported
+    /// Represents a range of data to be loaded. This could be an absolute range (in bytes), a relative range (in parts), or a promille range.
     /// </summary>
     public readonly struct LoadRange
     {
         /// <summary>
-        /// Creates a Range out two longs with absolut values.
+        /// Initializes a new instance of the <see cref="LoadRange"/> struct with absolute start and end values.
         /// </summary>
-        /// <param name="start">Start index</param>
-        /// <param name="end">End index</param>
+        /// <param name="start">The start index of the range.</param>
+        /// <param name="end">The end index of the range.</param>
+        /// <exception cref="InvalidOperationException">Thrown when <paramref name="start"/> is greater than or equal to <paramref name="end"/>.</exception>
         public LoadRange(long? start, long? end)
         {
             ThrowWhenLessThanNull(start, end);
@@ -24,11 +25,11 @@
         private static long? NullConvert(long? value, long valueEqualsNull) => value == valueEqualsNull ? null : value;
 
         /// <summary>
-        /// Creates a LoadRange object with a reative length
+        /// Initializes a new instance of the <see cref="LoadRange"/> struct with a relative range based on the part and total length.
         /// </summary>
-        /// <param name="part">Is the Index of the part that should load</param>
-        /// <param name="length">Number of parts that are awailable</param>
-        /// <exception cref="InvalidOperationException"><paramref name="part"/> can not be larger or the same value as <paramref name="length"/></exception>
+        /// <param name="part">The index of the part to load.</param>
+        /// <param name="length">The total number of parts available.</param>
+        /// <exception cref="InvalidOperationException">Thrown when <paramref name="part"/> is greater than or equal to <paramref name="length"/>.</exception>
         public LoadRange(Index part, int length)
         {
             int start = part.IsFromEnd ? part.Value - length : part.Value;
@@ -42,12 +43,11 @@
         }
 
         /// <summary>
-        /// Creates a LoadRange object with a reative length as promille 
+        /// Initializes a new instance of the <see cref="LoadRange"/> struct with a promille range.
         /// </summary>
-        /// <param name="start">Start is the start promille value between 0 and 1</param>
-        /// <param name="end">End ist the last promille value between 0 and 1</param>
-        /// <exception cref="InvalidOperationException"><paramref name="start"/> can not be larger or the same value as <paramref name="end"/></exception>
-        /// <exception cref="InvalidOperationException"><paramref name="start"/> and <paramref name="end"/> need to have a value between 0 and 1 </exception>
+        /// <param name="start">The start value of the range, as a promille value between 0 and 1.</param>
+        /// <param name="end">The end value of the range, as a promille value between 0 and 1.</param>
+        /// <exception cref="InvalidOperationException">Thrown when <paramref name="start"/> is greater than or equal to <paramref name="end"/>, or when either <paramref name="start"/> or <paramref name="end"/> is not between 0 and 1.</exception>
         public LoadRange(Half start, Half? end = null)
         {
             if (start >= end)
@@ -70,35 +70,71 @@
         }
 
         /// <summary>
-        /// If the LongRange object is emty
+        /// Converts a relative <see cref="LoadRange"/> to an absolute range, based on the given total length.
         /// </summary>
-        /// <returns>A bool that indicates a filled range</returns>
-        public bool IsEmty => Start == null && End == null && Length == null;
+        /// <param name="range">The relative range to convert.</param>
+        /// <param name="length">The total length of the data.</param>
+        /// <param name="partialLength">Length of the new absolut LoadRange</param>
+        /// <returns>A new <see cref="LoadRange"/> representing the absolute range.</returns>
+        /// <returns></returns>
+        public static LoadRange ToAbsolut(LoadRange range, long length, out long? partialLength)
+        {
+            LoadRange absolutRange = range;
+            if (range.IsAbsolut)
+            {
+                if (range.Length > length)
+                    absolutRange = new(range.Start, null);
 
+                if (range.End == null)
+                    partialLength = length - range.Start;
+                else
+                    partialLength = range.Length;
+            }
+            else if (range.IsPromille)
+            {
+                decimal onePromill = (decimal)length / 1000;
+                partialLength = (long?)(onePromill * (range.End ?? 1000 - range.Start));
+                long? startIndex = (long?)(onePromill * range.Start);
+                absolutRange = new LoadRange(startIndex == 0 ? startIndex : startIndex + 1, (long?)(onePromill * range.End));
+            }
+            else
+            {
+                decimal? partLength = (decimal)length / range.Length!.Value;
+                long? startIndex = (long?)(partLength * range.Start);
+                absolutRange = new LoadRange(startIndex == 0 ? startIndex : startIndex + 1, (long?)(partLength * range.End));
+                partialLength = absolutRange.Length;
+            }
+            return absolutRange;
+        }
 
         /// <summary>
-        /// Retuns the Length
+        /// Indicates whether the <see cref="LoadRange"/> object is empty.
+        /// </summary>
+        /// <returns>A boolean value that indicates whether the range is empty. Returns true if the Start, End, and Length properties are all null; otherwise, false.</returns>
+        public bool IsEmpty => Start == null && End == null && Length == null;
+
+        /// <summary>
+        /// Gets the length of the <see cref="LoadRange"/>.
         /// </summary>
         public long? Length { get; }
 
         /// <summary>
-        /// Start point in bytes
-        /// zero based
+        /// Gets the start point of the <see cref="LoadRange"/> in bytes. This value is zero-based.
         /// </summary>
         public long? Start { get; }
+
         /// <summary>
-        /// End point in bytes
-        /// zero based
+        /// Gets the end point of the <see cref="LoadRange"/> in bytes. This value is zero-based.
         /// </summary>
         public long? End { get; }
 
         /// <summary>
-        /// If the values are relativ
+        /// Indicates whether the values of the <see cref="LoadRange"/> are absolute.
         /// </summary>
         public bool IsAbsolut { get; }
 
         /// <summary>
-        /// If the values are promille values between 0-1000
+        /// Indicates whether the values of the <see cref="LoadRange"/> are promille values between 0 and 1000.
         /// </summary>
         public bool IsPromille { get; } = false;
     }

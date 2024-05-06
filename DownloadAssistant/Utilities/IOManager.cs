@@ -5,8 +5,14 @@ using System.Text;
 
 namespace DownloadAssistant.Utilities
 {
+    /// <summary>
+    /// Provides utility methods for I/O operations.
+    /// </summary>
     internal static class IOManager
     {
+        /// <summary>
+        /// Array of characters that are not allowed in file names.
+        /// </summary>
         public static char[] InvalidFileNameChars = new char[]
           {
             '\"', '<', '>', '|', '\0',
@@ -15,19 +21,22 @@ namespace DownloadAssistant.Utilities
             (char)21, (char)22, (char)23, (char)24, (char)25, (char)26, (char)27, (char)28, (char)29, (char)30,
             (char)31, ':', '?', '\\', '/'
           };
+
         /// <summary>
-        /// Converts Bytes to Megabytes
-        /// InputBytes : 1.048.576
+        /// Converts bytes to megabytes.
         /// </summary>
-        /// <param name="bytes">Bytes to convert</param>
-        /// <returns>Convertet megabytes value as double</returns>
+        /// <param name="bytes">The number of bytes to convert.</param>
+        /// <returns>The converted value in megabytes as a double.</returns>
+        /// <remarks>
+        /// For example, if <paramref name="bytes"/> is 1,048,576, the return value is 1.
+        /// </remarks>
         public static double BytesToMegabytes(long bytes) => bytes / 1048576;
 
         /// <summary>
-        /// Removes all invalid Characters for a filename out of a string
+        /// Removes all invalid characters from a file name.
         /// </summary>
-        /// <param name="name">input filename</param>
-        /// <returns>Clreared filename</returns>
+        /// <param name="name">The file name to clean.</param>
+        /// <returns>The cleaned file name.</returns>
         public static string RemoveInvalidFileNameChars(string name)
         {
             StringBuilder fileBuilder = new(name);
@@ -38,41 +47,28 @@ namespace DownloadAssistant.Utilities
 
 
 
-
         /// <summary>
-        /// Gets a value that indicates whether <paramref name="path"/>
-        /// is a valid path.
+        /// Determines whether a path is valid.
         /// </summary>
-        /// <returns>Returns <c>true</c> if <paramref name="path"/> is a
-        /// valid path; <c>false</c> otherwise. Also returns <c>false</c> if
-        /// the caller does not have the required permissions to access
-        /// <paramref name="path"/>.
+        /// <param name="path">The path to validate.</param>
+        /// <returns>
+        /// <c>true</c> if <paramref name="path"/> is a valid path; otherwise, <c>false</c>.
+        /// Also returns <c>false</c> if the caller does not have the required permissions to access <paramref name="path"/>.
         /// </returns>
-        /// <seealso cref="Path.GetFullPath(string)"/>
-        /// <seealso cref="TryGetFullPath"/>
         public static bool IsValidPath(string path) => TryGetFullPath(path, out _);
 
 
         /// <summary>
-        /// Returns the absolute path for the specified path string. A return
-        /// value indicates whether the conversion succeeded.
+        /// Tries to get the absolute path for the specified path string.
         /// </summary>
-        /// <param name="path">The file or directory for which to obtain absolute
-        /// path information.
+        /// <param name="path">The file or directory for which to obtain absolute path information.</param>
+        /// <param name="result">
+        /// When this method returns, contains the absolute path representation of <paramref name="path"/>, 
+        /// if the conversion succeeded, or <see cref="string.Empty"/> if the conversion failed.
         /// </param>
-        /// <param name="result">When this method returns, contains the absolute
-        /// path representation of <paramref name="path"/>, if the conversion
-        /// succeeded, or <see cref="string.Empty"/> if the conversion failed.
-        /// The conversion fails if <paramref name="path"/> is null or
-        /// <see cref="string.Empty"/>, or is not of the correct format. This
-        /// parameter is passed uninitialized; any value originally supplied
-        /// in <paramref name="result"/> will be overwritten.
-        /// </param>
-        /// <returns><c>true</c> if <paramref name="path"/> was converted
-        /// to an absolute path successfully; otherwise, false.
+        /// <returns>
+        /// <c>true</c> if <paramref name="path"/> was converted to an absolute path successfully; otherwise, <c>false</c>.
         /// </returns>
-        /// <seealso cref="Path.GetFullPath(string)"/>
-        /// <seealso cref="IsValidPath"/>
         public static bool TryGetFullPath(string path, out string result)
         {
             result = string.Empty;
@@ -94,11 +90,11 @@ namespace DownloadAssistant.Utilities
         }
 
         /// <summary>
-        /// Gets the Home or Desktop path
+        /// Gets the home directory path.
         /// </summary>
-        /// <returns>Returns Path to Desktop</returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="SecurityException"></exception>
+        /// <returns>The path to the home directory, or <c>null</c> if the path cannot be determined.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the environment variable for the home directory is not set on Unix platforms.</exception>
+        /// <exception cref="SecurityException">Thrown when the caller does not have the required permission to perform this operation.</exception>
         public static string? GetHomePath()
         {
             if (Environment.OSVersion.Platform == PlatformID.Unix)
@@ -107,13 +103,13 @@ namespace DownloadAssistant.Utilities
         }
 
         /// <summary>
-        /// Gets the download folder path
+        /// Gets the path to the downloads folder.
         /// </summary>
-        /// <returns>A path to the download folder</returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="ArgumentException"></exception>
-        /// <exception cref="IOException"></exception>
-        /// <exception cref="SecurityException"></exception>
+        /// <returns>The path to the downloads folder, or <c>null</c> if the path cannot be determined.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the home path is null or an empty string on Unix platforms.</exception>
+        /// <exception cref="ArgumentException">Thrown when the path to the downloads folder is not of the correct format.</exception>
+        /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
+        /// <exception cref="SecurityException">Thrown when the caller does not have the required permission to perform this operation.</exception>
         public static string? GetDownloadFolderPath()
         {
             if (Environment.OSVersion.Platform == PlatformID.Unix)
@@ -145,16 +141,16 @@ namespace DownloadAssistant.Utilities
 
 
         /// <summary>
-        /// Moves a file to another destination. If it existst it will be overwritten
+        /// Moves a file to a new location, overwriting the existing file if it exists.
         /// </summary>
-        /// <param name="path">Source file path</param>
-        /// <param name="destination">Destination file path</param>
+        /// <param name="path">The path of the file to move.</param>
+        /// <param name="destination">The path to the new location for the file.</param>
         public static void Move(string path, string destination) => File.Move(path, destination, true);
 
         /// <summary>
-        /// Creates a file or clears an existing one
+        /// Creates a new file or overwrites an existing file.
         /// </summary>
-        /// <param name="path">Path to the file that should be created</param>
+        /// <param name="path">The path of the file to create.</param>
         public static void Create(string path) => File.Create(path).Close();
     }
 }
