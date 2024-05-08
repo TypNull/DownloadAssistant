@@ -1,5 +1,5 @@
 ﻿using DownloadAssistant.Base;
-using DownloadAssistant.Request;
+using DownloadAssistant.Requests;
 using DownloadAssistant.Utilities;
 using Requests.Options;
 
@@ -11,86 +11,125 @@ namespace DownloadAssistant.Options
     public record GetRequestOptions : WebRequestOptions<string>
     {
         /// <summary>
-        /// Path to the directory where the file sould be stored to.
+        /// Gets or sets the path to the directory where the file should be stored.
         /// </summary>
+        /// <value>
+        /// The directory path.
+        /// </value>
         public string DirectoryPath { get; init; } = IOManager.GetDownloadFolderPath() ?? Environment.GetFolderPath(Environment.SpecialFolder.InternetCache);
 
         /// <summary>
-        /// Filename of the file that will be created and be written to.
+        /// Gets or sets the filename of the file that will be created and written to.
         /// </summary>
+        /// <value>
+        /// The filename.
+        /// </value>
         public string Filename { get; init; } = string.Empty;
 
         /// <summary>
-        /// WriteMode to specify how the file should be written.
+        /// Gets or sets the write mode to specify how the file should be written.
         /// </summary>
+        /// <value>
+        /// The write mode.
+        /// </value>
         public WriteMode WriteMode { get; init; }
 
         /// <summary>
-        /// Length of the stream buffer
-        /// Default is 1024 (8kb)
+        /// Gets or sets the length of the stream buffer. Default is 1024 (8kb).
         /// </summary>
+        /// <value>
+        /// The buffer length.
+        /// </value>
         public int BufferLength { get; init; } = 1024;
 
         /// <summary>
-        /// The maximum of byte that can be downloaded by the <see cref="GetRequest"/> per second.
+        /// Gets or sets the minimum byte length to restart the request and download only partial. Default is 2Mb.
         /// </summary>
+        /// <value>
+        /// The minimum reload size.
+        /// </value>
+        public uint MinReloadSize { get; set; } = 1048576 * 2; //2Mb
+
+        /// <summary>
+        /// Gets or sets the maximum of bytes that can be downloaded by the <see cref="GetRequest"/> per second.
+        /// </summary>
+        /// <value>
+        /// The maximum bytes per second.
+        /// </value>
         public long? MaxBytesPerSecond { get => _maxBytesPerSecond; init => _maxBytesPerSecond = value > 1 ? value : null; }
         private readonly long? _maxBytesPerSecond = null;
 
         /// <summary>
-        /// Min content byte of the Request
+        /// Gets or sets the minimum content byte of the Request.
         /// </summary>
+        /// <value>
+        /// The minimum byte.
+        /// </value>
         public long? MinByte
         {
             get => _minByte; init
             {
-                _minByte = value < 0 ? throw new ArgumentOutOfRangeException(nameof(_minByte)) : value;
+                _minByte = value < 0 ? throw new ArgumentOutOfRangeException(nameof(MinByte)) : value;
             }
         }
         private readonly long? _minByte = null;
 
         /// <summary>
-        /// Max content byte of the Request
+        /// Gets or sets the maximum content byte of the Request.
         /// </summary>
+        /// <value>
+        /// The maximum byte.
+        /// </value>
         public long? MaxByte
         {
             get => _maxByte; init
             {
-
-                _maxByte = value < 0 ? throw new ArgumentOutOfRangeException(nameof(_maxByte)) : value;
+                _maxByte = value < 0 ? throw new ArgumentOutOfRangeException(nameof(MaxByte)) : value;
             }
         }
         private readonly long? _maxByte = null;
+
         /// <summary>
-        /// Set the value to false if the server does not support this feature
+        /// Gets or sets a value indicating whether the server supports this feature.
         /// </summary>
+        /// <value>
+        ///   <c>true</c> if the server supports head request; otherwise, <c>false</c>.
+        /// </value>
         public bool SupportsHeadRequest { get; init; } = true;
 
         /// <summary>
-        /// Progress to watch the <see cref="GetRequest"/>.
+        /// Gets or sets the progress to watch the <see cref="GetRequest"/>.
         /// </summary>
+        /// <value>
+        /// The progress.
+        /// </value>
         public Progress<float>? Progress { get; init; } = null;
 
         /// <summary>
-        /// Sets the download range of th<see cref="GetRequest"/> 
-        /// Start can not be used with LoadMode.Append it will switch to LoadMode.Create
+        /// Gets or sets the download range of the <see cref="GetRequest"/>. Start cannot be used with LoadMode.Append, it will switch to LoadMode.Create.
         /// </summary>
+        /// <value>
+        /// The range.
+        /// </value>
         public LoadRange Range { get; init; }
 
         /// <summary>
-        /// Raised when Fileinfos are fetched from the server
+        /// Gets or sets the notification when Fileinfos are fetched from the server.
         /// </summary>
+        /// <value>
+        /// The infos fetched notification.
+        /// </value>
         public Notify<GetRequest>? InfosFetched { get; init; }
 
         /// <summary>
-        /// Default Constructor of <see cref="GetRequestOptions"/>.
+        /// Initializes a new instance of the <see cref="GetRequestOptions"/> class.
         /// </summary>
         public GetRequestOptions() { }
 
         /// <summary>
-        /// Copy constructor of <see cref="GetRequestOptions"/>
+        /// Initializes a new instance of the <see cref="GetRequestOptions"/> class by copying an existing instance.
         /// </summary>
-        /// <param name="options">Options to copy</param>
+        /// <param name="options">The options to copy.</param>
         protected GetRequestOptions(GetRequestOptions options) : base(options)
         {
             DirectoryPath = options.DirectoryPath;
@@ -104,6 +143,7 @@ namespace DownloadAssistant.Options
             Progress = options.Progress;
             Range = options.Range;
             InfosFetched = options.InfosFetched;
+            MinReloadSize = options.MinReloadSize;
         }
     }
 
@@ -113,16 +153,17 @@ namespace DownloadAssistant.Options
     public enum WriteMode
     {
         /// <summary>
-        /// Overwrites a file if it already exists or creates a new one.
+        /// Overwrites a file if it already exists, or creates a new one.
         /// </summary>
         Create,
         /// <summary>
-        /// Creates always a new file with diffrent filename and writes into it.
+        /// Always creates a new file with a different filename and writes into it.
         /// </summary>
         CreateNew,
         /// <summary>
-        /// Append an already existing file or creates a new one.
+        /// Appends to an already existing file, or creates a new one.
         /// </summary>
         Append
     }
+
 }

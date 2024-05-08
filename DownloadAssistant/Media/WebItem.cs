@@ -1,22 +1,22 @@
 ﻿
 
 using DownloadAssistant.Options;
-using DownloadAssistant.Request;
+using DownloadAssistant.Requests;
 
 namespace DownloadAssistant.Media
 {
     /// <summary>
-    /// Web item with Information of the file
+    /// Represents a web item with information about a file.
     /// </summary>
     public record WebItem
     {
         /// <summary>
-        /// Constructor of WebItem
+        /// Initializes a new instance of the <see cref="WebItem"/> class.
         /// </summary>
-        /// <param name="url">The URL of the Item</param>
-        /// <param name="title">Title of the Item</param>
-        /// <param name="description">Description of the Item</param>
-        /// <param name="typeRaw">Raw Media type of the Item</param>
+        /// <param name="url">The URL of the item.</param>
+        /// <param name="title">The title of the item.</param>
+        /// <param name="description">The description of the item.</param>
+        /// <param name="typeRaw">The raw media type of the item.</param>
         public WebItem(Uri url, string title, string description, string typeRaw)
         {
             URL = url;
@@ -26,38 +26,38 @@ namespace DownloadAssistant.Media
         }
 
         /// <summary>
-        /// Description of the WebItem
+        /// Gets or sets the description of the web item.
         /// </summary>
         public string Description { get; init; }
 
         /// <summary>
-        /// Uri that holds Url of Webitem
+        /// Gets or sets the URL of the web item.
         /// </summary>
         public Uri URL { get; init; }
 
         /// <summary>
-        /// Title of the WebItem
+        /// Gets or sets the title of the web item.
         /// </summary>
         public string Title { get; init; }
 
         /// <summary>
-        /// Type of the WebItem
+        /// Gets or sets the type of the web item.
         /// </summary>
         public WebType Type { get; init; }
 
         /// <summary>
-        /// Creates a <see cref="GetRequest"/> out of this WebItem
+        /// Creates a <see cref="GetRequest"/> from this web item.
         /// </summary>
-        /// <param name="requestOptions">Options for the Request</param>
-        /// <returns>Returns a new <see cref="GetRequest"/></returns>
+        /// <param name="requestOptions">The options for the request.</param>
+        /// <returns>A new <see cref="GetRequest"/>.</returns>
 
         public GetRequest CreateLoadRequest(GetRequestOptions? requestOptions = null) => new(URL.AbsoluteUri, requestOptions);
 
         /// <summary>
-        /// Creates a <see cref="StatusRequest"/> to see if the file is available.
+        /// Creates a <see cref="StatusRequest"/> to check if the file is available.
         /// </summary>
-        /// <param name="requestOptions">Options for the Request</param>
-        /// <returns>A <see cref="StatusRequest"/></returns>
+        /// <param name="requestOptions">The options for the request.</param>
+        /// <returns>A new <see cref="StatusRequest"/>.</returns>
         public StatusRequest CreateStatusRequest(WebRequestOptions<HttpResponseMessage>? requestOptions = null) => new(URL.AbsoluteUri, requestOptions);
 
     }

@@ -6,15 +6,39 @@
     <Nullable>enable</Nullable>
     <Title>DownloadAssistant</Title>
     <PackageId>Shard.DownloadAssistant</PackageId>
-    <Copyright>Shard © 2023 | Free to use</Copyright>
-    <PackageProjectUrl>https://github.com/TypNull/DownloadAssistant</PackageProjectUrl>
+    <Copyright>Shard © 2024</Copyright>
+    <PackageProjectUrl></PackageProjectUrl>
     <PackageIcon>logo.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Version>0.1.0</Version>
+    <Version>1.0.0</Version>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <Description>A free to use library as a download manager.
+Includes retry, priority, cancel, etc.. function.
+
+Features:
+   • StatusRequest: Calls a Head request and returns a response message with the headers.
+   • SiteRequest: Scans a website for all references.
+   • GetRequest: To download the response into a file.
+   • LoadRequest: Extends GetRequest with chunked download.</Description>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>request, FreeToUse, HttpClient, producer-consumer, file-downloader, downloader, chunk, http</PackageTags>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <Company>Shard</Company>
+    <Authors>Meyn</Authors>
+    <PackageReleaseNotes>Improved documentationt
+Implements Shard.Requests 2.1.4
+Fix Range and SecondRange End exception
+Add MergedChunks re-Run 
+Add MinReloadSize to GetRequestOptions</PackageReleaseNotes>
+    <RepositoryUrl>https://github.com/TypNull/DownloadAssistant</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="..\LICENSE.txt">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
     <None Include="..\logo.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
@@ -26,7 +50,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Shard.Requests" Version="2.0.0" />
+    <PackageReference Include="Shard.Requests" Version="2.1.4" />
   </ItemGroup>
 
   <ItemGroup>

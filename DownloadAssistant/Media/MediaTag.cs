@@ -1,31 +1,63 @@
 ﻿namespace DownloadAssistant.Media
 {
     /// <summary>
-    /// Media type of a web file
+    /// Enum representing the media type of a web file.
     /// </summary>
     public enum MediaType
     {
-        /// <summary>Is not a media</summary>
+        /// <summary>
+        /// Represents a non-media file.
+        /// </summary>
         NoMedia,
-        /// <summary>Video and movie files</summary>
+
+        /// <summary>
+        /// Represents video and movie files, such as .mp4 or .avi.
+        /// </summary>
         Video,
-        /// <summary>Audio and music files</summary>
+
+        /// <summary>
+        /// Represents audio and music files, such as .mp3 or .wav.
+        /// </summary>
         Audio,
-        /// <summary>Binary data that require an application</summary>
+
+        /// <summary>
+        /// Represents binary data that require an application to interpret, such as .exe or .dll.
+        /// </summary>
         Application,
-        /// <summary>Readable text file</summary>
+
+        /// <summary>
+        /// Represents readable text files, such as .txt or .docx.
+        /// </summary>
         Text,
-        /// <summary>Graphical data format</summary>
+
+        /// <summary>
+        /// Represents graphical data formats, such as .jpg or .png.
+        /// </summary>
         Image,
-        /// <summary>Font or typeface file</summary>
+
+        /// <summary>
+        /// Represents font or typeface files, such as .ttf or .otf.
+        /// </summary>
         Font,
-        /// <summary>Model data to create 2d or 3d scenes</summary>
+
+        /// <summary>
+        /// Represents model data used to create 2D or 3D scenes, such as .obj or .fbx.
+        /// </summary>
         Model,
-        /// <summary>Data with multiple media types</summary>
+
+        /// <summary>
+        /// Represents data with multiple media types, such as .html or .xml.
+        /// </summary>
         Multipart,
-        /// <summary>Email and messaging formats</summary>
+
+        /// <summary>
+        /// Represents email and messaging formats, such as .eml or .msg.
+        /// </summary>
         Message,
-        /// <summary>Media type is unknown</summary>
+
+        /// <summary>
+        /// Represents a media type that is unknown or not recognized.
+        /// </summary>
         Unknown,
     }
 }

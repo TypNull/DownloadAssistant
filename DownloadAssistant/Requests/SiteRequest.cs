@@ -4,75 +4,95 @@ using DownloadAssistant.Options;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 
-namespace DownloadAssistant.Request
+namespace DownloadAssistant.Requests
 {
     /// <summary>
     /// Request that scanns a Website for references and files.
     /// </summary>
     public class SiteRequest : WebRequest<WebRequestOptions<SiteRequest>, SiteRequest>
     {
+        // Regular expressions for URL, reference, and reference link.
         private const string URL_REGEX = "(http|ftp|https):\\/\\/([\\w_-]+(?:(?:\\.[\\w_-]+)+))([\\w.,@?^=%&:\\/~+#-]*[\\w@?^=%&\\/~+#-])";
         private const string REF_REGEX = "<.*?(src|SRC)\\s*=\\s*[\"\"'][^\"\"'#>]+[\"\"'].*?>";
         private const string REFLINK_REGEX = "<a.*?(href|HREF)\\s*=\\s*[\"\"'][^\"\"'#>]+[\"\"'].*?</a>";
-
         /// <summary>
-        /// A <see cref="CancellationTokenSource"/> that will be used to let <see cref="WebRequestOptions{TCompleated}.Timeout"/> run.
+        /// A <see cref="CancellationTokenSource"/> used to handle timeouts in <see cref="WebRequestOptions{TCompleated}.Timeout"/>.
         /// </summary>
         private CancellationTokenSource? _timeoutCTS;
 
         /// <summary>
-        /// HTML of the WebSite.
+        /// Gets the HTML content of the website.
         /// </summary>
+        /// <value>The HTML content of the website.</value>
         public string HTML { get; private set; } = string.Empty;
 
         /// <summary>
-        /// Url of the WebSite.
+        /// Gets the base URL of the website.
         /// </summary>
+        /// <value>The base URL of the website.</value>
         public string BaseURl { get; private set; } = string.Empty;
 
         /// <summary>
-        /// All links on the Website
+        /// Gets all the links on the website.
         /// </summary>
+        /// <value>A read-only list of <see cref="WebItem"/> representing all the links on the website.</value>
         public IReadOnlyList<WebItem> Links { get; private set; } = new List<WebItem>();
-        /// <summary>
-        /// All videos on the Website
-        /// </summary>
-        public IReadOnlyList<WebItem> Videos { get; private set; } = new List<WebItem>();
-        /// <summary>
-        /// All audios on the Website
-        /// </summary>
-        public IReadOnlyList<WebItem> Audios { get; private set; } = new List<WebItem>();
-        /// <summary>
-        /// All images on the Website
-        /// </summary>
-        public IReadOnlyList<WebItem> Images { get; private set; } = new List<WebItem>();
-        /// <summary>
-        /// All files on the Website
-        /// </summary>
-        public IReadOnlyList<WebItem> Files { get; private set; } = new List<WebItem>();
-        /// <summary>
-        /// All scrips on the Website
-        /// </summary>
-        public IReadOnlyList<WebItem> Scripts { get; private set; } = new List<WebItem>();
-        /// <summary>
-        /// All unknown type files on the Website
-        /// </summary>
-        public IReadOnlyList<WebItem> UnknownType { get; private set; } = new List<WebItem>();
-        /// <summary>
-        /// All css files on the Website
-        /// </summary>
-        public IReadOnlyList<WebItem> CSS { get; private set; } = new List<WebItem>();
-        /// <summary>
-        /// All referneces on the Website
-        /// </summary>
-        public IReadOnlyList<WebItem> References { get; private set; } = new List<WebItem>();
 
         /// <summary>
-        /// Main contructor of <see cref="SiteRequest"/>
+        /// Gets all the videos on the website.
         /// </summary>
-        /// <param name="url">Url of <see cref="SiteRequest"/></param>
-        /// <param name="options">Options that configure the <see cref="SiteRequest"/></param>
-        /// <exception cref="UriFormatException">Throws a exception if url is not well formated</exception>
+        /// <value>A read-only list of <see cref="WebItem"/> representing all the videos on the website.</value>
+        public IReadOnlyList<WebItem> Videos { get; private set; } = new List<WebItem>();
+
+        /// <summary>
+        /// Gets all the audios on the website.
+        /// </summary>
+        /// <value>A read-only list of <see cref="WebItem"/> representing all the audios on the website.</value>
+        public IReadOnlyList<WebItem> Audios { get; private set; } = new List<WebItem>();
+
+        /// <summary>
+        /// Gets all the images on the website.
+        /// </summary>
+        /// <value>A read-only list of <see cref="WebItem"/> representing all the images on the website.</value>
+        public IReadOnlyList<WebItem> Images { get; private set; } = new List<WebItem>();
+
+        /// <summary>
+        /// Gets all the files on the website.
+        /// </summary>
+        /// <value>A read-only list of <see cref="WebItem"/> representing all the files on the website.</value>
+        public IReadOnlyList<WebItem> Files { get; private set; } = new List<WebItem>();
+
+        /// <summary>
+        /// Gets all the scripts on the website.
+        /// </summary>
+        /// <value>A read-only list of <see cref="WebItem"/> representing all the scripts on the website.</value>
+        public IReadOnlyList<WebItem> Scripts { get; private set; } = new List<WebItem>();
+
+        /// <summary>
+        /// Gets all the unknown type files on the website.
+        /// </summary>
+        /// <value>A read-only list of <see cref="WebItem"/> representing all the unknown type files on the website.</value>
+        public IReadOnlyList<WebItem> UnknownType { get; private set; } = new List<WebItem>();
+
+        /// <summary>
+        /// Gets all the CSS files on the website.
+        /// </summary>
+        /// <value>A read-only list of <see cref="WebItem"/> representing all the CSS files on the website.</value>
+        public IReadOnlyList<WebItem> CSS { get; private set; } = new List<WebItem>();
+
+        /// <summary>
+        /// Gets all the references on the website.
+        /// </summary>
+        /// <value>A read-only list of <see cref="WebItem"/> representing all the references on the website.</value>
+        public IReadOnlyList<WebItem> References { get; private set; } = new List<WebItem>();
+
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SiteRequest"/> class.
+        /// </summary>
+        /// <param name="url">The URL for the <see cref="SiteRequest"/>.</param>
+        /// <param name="options">The options that configure the <see cref="SiteRequest"/>.</param>
+        /// <exception cref="UriFormatException">Thrown when the provided URL is not well-formed.</exception>
         public SiteRequest(string url, WebRequestOptions<SiteRequest>? options = null) : base(url, options)
         {
             if (!Uri.IsWellFormedUriString(url, UriKind.RelativeOrAbsolute))
@@ -86,6 +106,10 @@ namespace DownloadAssistant.Request
             AutoStart();
         }
 
+        /// <summary>
+        /// Sends an HTTP message.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         private async Task<HttpResponseMessage> SendHttpMenssage()
         {
             HttpRequestMessage msg = GetPresetRequestMessage(new(HttpMethod.Get, Url));
@@ -98,7 +122,10 @@ namespace DownloadAssistant.Request
             return await HttpGet.HttpClient.SendAsync(msg, HttpCompletionOption.ResponseHeadersRead, Token);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Runs the request asynchronously.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> that represents the asynchronous operation.</returns>
         protected override async Task<RequestReturn> RunRequestAsync()
         {
             HttpResponseMessage? response = null;
@@ -126,6 +153,9 @@ namespace DownloadAssistant.Request
             return new(false, this, response);
         }
 
+        /// <summary>
+        /// Scans the HTML for references.
+        /// </summary>
         private void ScanReferences()
         {
             List<string> found = new Regex(REF_REGEX, RegexOptions.Multiline, TimeSpan.FromSeconds(10)).Matches(HTML).Select(x => x.Value).ToList();
@@ -138,6 +168,9 @@ namespace DownloadAssistant.Request
             SortReferneces();
         }
 
+        /// <summary>
+        /// Sorts the references by type.
+        /// </summary>
         private void SortReferneces()
         {
             Files = References.Where(reference => reference.Type.IsMedia).ToList();
@@ -150,6 +183,11 @@ namespace DownloadAssistant.Request
             Images = References.Where(reference => reference.Type.IsImage).ToList();
         }
 
+        /// <summary>
+        /// Scans for other items in the HTML.
+        /// </summary>
+        /// <param name="found">The found items.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> of <see cref="WebItem"/>.</returns>
         private IEnumerable<WebItem> ScanOther(IEnumerable<string> found)
         {
             List<WebItem> others = new();
@@ -166,6 +204,11 @@ namespace DownloadAssistant.Request
             return others;
         }
 
+        /// <summary>
+        /// Scans the tags for references.
+        /// </summary>
+        /// <param name="tags">The tags to scan.</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> of <see cref="WebItem"/>.</returns>
         private IEnumerable<WebItem> ScanReferences(string[] tags)
         {
             List<WebItem> references = new();
@@ -205,6 +248,11 @@ namespace DownloadAssistant.Request
             return references;
         }
 
+        /// <summary>
+        /// Converts the file extension of a URI to a media tag.
+        /// </summary>
+        /// <param name="uri">The URI to extract the file extension from.</param>
+        /// <returns>A string representing the media tag.</returns>
         private static string FileExtensionToMediaTag(Uri uri)
         {
             if (!Path.HasExtension(uri.AbsolutePath))
@@ -223,6 +271,12 @@ namespace DownloadAssistant.Request
             };
         }
 
+        /// <summary>
+        /// Extracts the value of a specified tag from a string.
+        /// </summary>
+        /// <param name="nameRegex">The regular expression pattern to match the tag name.</param>
+        /// <param name="value">The string to search for the tag.</param>
+        /// <returns>The value of the specified tag if found; otherwise, an empty string.</returns>
         private static string GetTag(string nameRegex, string value)
         {
             if (Regex.Match(value, $@"({nameRegex})\s*=\""(.*?)\""", RegexOptions.Singleline) is Match match && match.Success)

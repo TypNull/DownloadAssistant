@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33122.133
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DownloadAssistant", "DownloadAssistant\DownloadAssistant.csproj", "{3D9B9E66-8044-411A-A380-FA7D894B54E8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DownloadAssistant", "DownloadAssistant\DownloadAssistant.csproj", "{3D9B9E66-8044-411A-A380-FA7D894B54E8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTest", "UnitTest\UnitTest.csproj", "{2FC7EF52-CDD3-4029-B78F-AA2B91131C47}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{3D9B9E66-8044-411A-A380-FA7D894B54E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3D9B9E66-8044-411A-A380-FA7D894B54E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3D9B9E66-8044-411A-A380-FA7D894B54E8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2FC7EF52-CDD3-4029-B78F-AA2B91131C47}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2FC7EF52-CDD3-4029-B78F-AA2B91131C47}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2FC7EF52-CDD3-4029-B78F-AA2B91131C47}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2FC7EF52-CDD3-4029-B78F-AA2B91131C47}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
