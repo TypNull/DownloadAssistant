@@ -239,8 +239,10 @@ namespace DownloadAssistant.Requests
                 return;
             Filename = request.ContentName;
             if (IsChunked)
+            {
                 _chunkHandler.SetInfos(request);
-            CheckPartFile(request);
+                CheckPartFile(request);
+            }
 
             SynchronizationContext.Post((o) => Options.InfosFetched?.Invoke((LoadRequest)o!), this);
             ExcludedExtensions(request.ContentExtension);
@@ -357,7 +359,7 @@ namespace DownloadAssistant.Requests
                 File.Delete(TempDestination);
             if (File.Exists(Destination) && new FileInfo(Destination).Length == 0)
                 File.Delete(Destination);
-          _=  _chunkHandler.DeleteChunkFiles(_chunkHandler.RequestContainer.Length);
+            _ = _chunkHandler.DeleteChunkFiles(_chunkHandler.RequestContainer.Length);
         }
 
         /// <summary>
