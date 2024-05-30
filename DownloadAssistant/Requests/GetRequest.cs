@@ -118,13 +118,13 @@ namespace DownloadAssistant.Requests
         /// <returns>A task that represents the asynchronous operation.</returns>
         public async Task RunToCompleatedAsync()
         {
-            var state = State;
-                State = RequestState.Compleated;
-             if (state != RequestState.Running)
-              SetTaskState();
+            RequestState state = State;
+            State = RequestState.Compleated;
+            if (state != RequestState.Running)
+                SetTaskState();
 
             if (State == RequestState.Compleated)
-            { 
+            {
                 await Task;
                 _progress.Report(1f);
                 SynchronizationContext.Post(delegate (object? o)

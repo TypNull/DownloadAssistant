@@ -239,10 +239,9 @@ namespace DownloadAssistant.Requests
                 return;
             Filename = request.ContentName;
             if (IsChunked)
-            {
                 _chunkHandler.SetInfos(request);
-                CheckPartFile(request);
-            }
+            CheckPartFile(request);
+
 
             SynchronizationContext.Post((o) => Options.InfosFetched?.Invoke((LoadRequest)o!), this);
             ExcludedExtensions(request.ContentExtension);
@@ -267,7 +266,7 @@ namespace DownloadAssistant.Requests
                 case WriteMode.CreateNew:
                     string fileExt = Path.GetExtension(Filename!);
                     string contentName = Path.GetFileNameWithoutExtension(Filename!);
-                    for (int i = 1; File.Exists(TempDestination) || File.Exists(Destination); i++)
+                    for (int i = 1; (File.Exists(TempDestination) && IsChunked) || File.Exists(Destination); i++)
                     {
                         Filename = contentName + $"({i})" + fileExt;
                         Destination = Path.Combine(Options.DestinationPath, Filename!);
@@ -279,10 +278,13 @@ namespace DownloadAssistant.Requests
                     break;
                 case WriteMode.Create:
                     IOManager.Create(Destination);
-                    IOManager.Create(TempDestination);
+                    if (!IsChunked)
+                        IOManager.Create(TempDestination);
                     _writeMode = WriteMode.Append;
                     break;
                 case WriteMode.Append:
+                    if (!IsChunked)
+                        break;
                     if (File.Exists(TempDestination))
                         byteLength = new FileInfo(TempDestination).Length;
                     if (byteLength > (IsChunked ? request.FullContentLength ?? (request.PartialContentLength * Options.Chunks) : ContentLength))
