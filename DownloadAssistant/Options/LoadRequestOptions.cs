@@ -111,7 +111,7 @@ namespace DownloadAssistant.Options
         /// <summary>
         /// Gets or sets a value indicating whether to delete temporary files if the <see cref="LoadRequest"/> fails.
         /// </summary>
-        public bool DeleteTmpOnFailure { get; set; }
+        public bool DeleteFilesOnFailure { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LoadRequestOptions"/> class.
@@ -129,7 +129,7 @@ namespace DownloadAssistant.Options
             Range = options.Range;
             _temporaryPath = options.TempDestination;
             _destinationPath = options.DestinationPath;
-            DeleteTmpOnFailure = options.DeleteTmpOnFailure;
+            DeleteFilesOnFailure = options.DeleteFilesOnFailure;
             WriteMode = options.WriteMode;
             BufferLength = options.BufferLength;
             MaxBytesPerSecond = options.MaxBytesPerSecond;

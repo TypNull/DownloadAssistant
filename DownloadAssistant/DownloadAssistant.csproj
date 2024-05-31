@@ -26,11 +26,7 @@ Features:
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <Company>Shard</Company>
     <Authors>Meyn</Authors>
-    <PackageReleaseNotes>Improved documentationt
-Implements Shard.Requests 2.1.4
-Fix Range and SecondRange End exception
-Add MergedChunks re-Run 
-Add MinReloadSize to GetRequestOptions</PackageReleaseNotes>
+    <PackageReleaseNotes></PackageReleaseNotes>
     <RepositoryUrl>https://github.com/TypNull/DownloadAssistant</RepositoryUrl>
   </PropertyGroup>
 

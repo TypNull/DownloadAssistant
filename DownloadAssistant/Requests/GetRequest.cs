@@ -263,17 +263,22 @@ namespace DownloadAssistant.Requests
                     IOManager.Create(FilePath);
                     _mode = WriteMode.Append;
                     break;
-                case WriteMode.Create:
+                case WriteMode.Overwrite:
                     IOManager.Create(FilePath);
                     _mode = WriteMode.Append;
                     break;
-                case WriteMode.Append:
+                case WriteMode.AppendOrTruncate:
                     LoadWrittenBytes();
                     if (BytesWritten > ContentLength)
                     {
                         IOManager.Create(FilePath);
                         BytesWritten = 0;
                     }
+                    break;
+                case WriteMode.Append:
+                    LoadWrittenBytes();
+                    State = RequestState.Failed;
+                    SynchronizationContext.Post((object? o) => Options.RequestFailed?.Invoke((IRequest)o!, null), this);
                     break;
             }
 

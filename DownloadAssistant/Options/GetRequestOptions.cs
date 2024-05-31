@@ -155,15 +155,26 @@ namespace DownloadAssistant.Options
         /// <summary>
         /// Overwrites a file if it already exists, or creates a new one.
         /// </summary>
-        Create,
+        Overwrite,
         /// <summary>
         /// Always creates a new file with a different filename and writes into it.
         /// </summary>
         CreateNew,
         /// <summary>
-        /// Appends to an already existing file, or creates a new one.
+        /// Appends content to the existing file. If the file size is larger than expected, 
+        /// it truncates the file to zero bytes and starts over.
+        /// </summary>
+        /// <remarks>
+        /// This mode is useful when you want to ensure that the file size does not exceed 
+        /// the actual file limit, and you are willing to lose the existing content.
+        /// </remarks>
+        AppendOrTruncate,
+        /// <summary>
+        /// Appends content to the end of the existing file or creates a new file if it does not exist.
+        /// Throws a <see cref="FileLoadException"/> if the file size exceeds the expected limit.
         /// </summary>
         Append
+
     }
 
 }

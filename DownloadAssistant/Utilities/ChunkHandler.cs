@@ -2,7 +2,6 @@
 using DownloadAssistant.Requests;
 using Requests;
 using Requests.Options;
-using System.Diagnostics;
 
 namespace DownloadAssistant.Utilities
 {
@@ -125,25 +124,25 @@ namespace DownloadAssistant.Utilities
         /// </summary>
         /// <param name="bytes">The number of downloaded bytes.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains a boolean value indicating whether the operation was successful.</returns>
-         public async Task<bool> TrySetBytesAsync(long bytes)
-         {
-             if (BytesWritten != 0 || bytes == 0)
-                 return false;
+        public async Task<bool> TrySetBytesAsync(long bytes)
+        {
+            if (BytesWritten != 0 || bytes == 0)
+                return false;
 
-             var (count, hasRest) = CalculatePartialContentLength(bytes);
-            
-             ProcessRequestsCompletion(count);
+            (int count, bool hasRest) = CalculatePartialContentLength(bytes);
 
-             BytesWritten = bytes;
+            ProcessRequestsCompletion(count);
 
-             if (hasRest)
-                 PauseAndReplaceRequest(count, bytes);
+            BytesWritten = bytes;
 
-             await DeleteChunkFiles(count);
+            if (hasRest)
+                PauseAndReplaceRequest(count, bytes);
 
-             return true;
-         }
-       
+            await DeleteChunkFiles(count);
+
+            return true;
+        }
+
         /// <summary>
         /// Calculates the partial content length based on the number of bytes.
         /// </summary>
@@ -163,7 +162,7 @@ namespace DownloadAssistant.Utilities
                 count++;
                 rest -= partial!.Value;
             }
-            return (count, rest!=0);
+            return (count, rest != 0);
         }
 
         /// <summary>
@@ -191,7 +190,7 @@ namespace DownloadAssistant.Utilities
             RequestContainer[count] = new GetRequest(RequestContainer[count].Url, RequestContainer[count].StartOptions with
             {
                 MinByte = bytes,
-                WriteMode = Options.WriteMode.Create
+                WriteMode = Options.WriteMode.Overwrite,
             });
             request.Dispose();
         }

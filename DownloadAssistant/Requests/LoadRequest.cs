@@ -224,7 +224,8 @@ namespace DownloadAssistant.Requests
         {
             State = RequestState.Failed;
             Pause();
-            ClearOnFailure();
+            _ = ClearOnFailure();
+            SynchronizationContext.Post((object? o) => Options.RequestFailed?.Invoke((IRequest)o!, element), this);
         }
 
         /// <summary>
@@ -238,15 +239,69 @@ namespace DownloadAssistant.Requests
             if (Interlocked.CompareExchange(ref _check, 1, 0) == 1)
                 return;
             Filename = request.ContentName;
-            if (IsChunked)
-                _chunkHandler.SetInfos(request);
-            CheckPartFile(request);
+            try
+            {
+
+                if (IsChunked)
+                {
+                    _chunkHandler.SetInfos(request);
+                    CreatePlaceholderFiles(request);
+                }
+                else
+                {
+                    CreatePlaceholderFile(request);
+                    if (State != RequestState.Running)
+                        return;
+                }
 
 
-            SynchronizationContext.Post((o) => Options.InfosFetched?.Invoke((LoadRequest)o!), this);
-            ExcludedExtensions(request.ContentExtension);
+                SynchronizationContext.Post((o) => Options.InfosFetched?.Invoke((LoadRequest)o!), this);
+                ExcludedExtensions(request.ContentExtension);
+            }
+            catch (Exception ex)
+            {
+                AddException(ex);
+                OnFailure(this, null);
+            }
 
             _check = 0;
+        }
+
+        /// <summary>
+        /// Creates a file for the download destination.
+        /// </summary>
+        /// <param name="request">The <see cref="GetRequest"/> instance from which information is fetched.</param>
+        /// <remarks>
+        /// This method checks if a file exists and loads its information. It also handles file creation based on the write mode.
+        /// </remarks>
+        private void CreatePlaceholderFile(GetRequest request)
+        {
+            Destination = Path.Combine(Options.DestinationPath, Filename!);
+            TempDestination = request.FilePath;
+            switch (_writeMode)
+            {
+                case WriteMode.CreateNew:
+                    string fileExt = Path.GetExtension(Filename!);
+                    string contentName = Path.GetFileNameWithoutExtension(Filename!);
+                    for (int i = 1; File.Exists(Destination); i++)
+                    {
+                        Filename = contentName + $"({i})" + fileExt;
+                        Destination = Path.Combine(Options.DestinationPath, Filename);
+                    }
+                    IOManager.Create(Destination);
+                    break;
+                case WriteMode.Overwrite:
+                case WriteMode.AppendOrTruncate:
+                    IOManager.Create(Destination);
+                    break;
+                case WriteMode.Append:
+                    if (!File.Exists(Destination) && new FileInfo(Destination).Length <= 0)
+                        break;
+                    AddException(new FileLoadException($"The file {Filename} at {Destination} already exists. Please change the WriteMode to Create or increase the MinReloadSize."));
+                    OnFailure(this, null);
+                    break;
+            }
+            _writeMode = WriteMode.Append;
         }
 
         /// <summary>
@@ -256,9 +311,8 @@ namespace DownloadAssistant.Requests
         /// <remarks>
         /// This method checks if a part file exists and loads its information. It also handles file creation based on the write mode.
         /// </remarks>
-        private async void CheckPartFile(GetRequest request)
+        private async void CreatePlaceholderFiles(GetRequest request)
         {
-            long byteLength = 0;
             Destination = Path.Combine(Options.DestinationPath, Filename!);
             TempDestination = Path.Combine(Options.TempDestination, Filename + ".part");
             switch (_writeMode)
@@ -272,27 +326,41 @@ namespace DownloadAssistant.Requests
                         Destination = Path.Combine(Options.DestinationPath, Filename!);
                         TempDestination = Path.Combine(Options.TempDestination, Filename + ".part");
                     }
-                    _writeMode = WriteMode.Append;
                     IOManager.Create(Destination);
                     IOManager.Create(TempDestination);
                     break;
-                case WriteMode.Create:
+                case WriteMode.Overwrite:
                     IOManager.Create(Destination);
-                    if (!IsChunked)
-                        IOManager.Create(TempDestination);
-                    _writeMode = WriteMode.Append;
+                    IOManager.Create(TempDestination);
                     break;
                 case WriteMode.Append:
-                    if (!IsChunked)
+                    if (File.Exists(Destination) && new FileInfo(TempDestination).Length > 0)
+                    {
+                        AddException(new FileLoadException($"The file {Filename} at {Destination} already exists. Please change the WriteMode or delete the file."));
+                        OnFailure(this, null);
                         break;
-                    if (File.Exists(TempDestination))
-                        byteLength = new FileInfo(TempDestination).Length;
-                    if (byteLength > (IsChunked ? request.FullContentLength ?? (request.PartialContentLength * Options.Chunks) : ContentLength))
+                    }
+                    if (!File.Exists(TempDestination))
+                        break;
+                    if (new FileInfo(TempDestination).Length < (request.FullContentLength ?? (request.PartialContentLength * Options.Chunks)))
+                    {
+                        AddException(new FileLoadException($"The file specified in {TempDestination} has exceeded the expected filesize of the actual downloaded file. Please adjust the WriteMode."));
+                        OnFailure(this, null);
+                    }
+                    break;
+                case WriteMode.AppendOrTruncate:
+                    IOManager.Create(Destination);
+                    if (!File.Exists(TempDestination))
+                        break;
+                    long byteLength = new FileInfo(TempDestination).Length;
+                    if (byteLength > (request.FullContentLength ?? (request.PartialContentLength * Options.Chunks)))
                         IOManager.Create(TempDestination);
                     else
                         await _chunkHandler.TrySetBytesAsync(byteLength);
                     break;
+
             }
+            _writeMode = WriteMode.Append;
         }
 
         /// <summary>
@@ -306,7 +374,7 @@ namespace DownloadAssistant.Requests
         {
             if (Options.ExcludedExtensions != null && !string.IsNullOrWhiteSpace(contentExtension) && Options.ExcludedExtensions.Any(contentExtension.EndsWith))
             {
-                AddException(new InvalidOperationException($"Content extension is invalid"));
+                AddException(new InvalidOperationException($"The content extension '{contentExtension}' is invalid."));
                 OnFailure(this, null);
             }
         }
@@ -352,16 +420,24 @@ namespace DownloadAssistant.Requests
         /// <summary>
         /// Resets the failure state of the request and deletes temporary files if necessary.
         /// </summary>
-        private void ClearOnFailure()
+        private async Task ClearOnFailure()
         {
-            if (!Options.DeleteTmpOnFailure || _isCleared)
-                return;
-            _isCleared = true;
-            if (File.Exists(TempDestination))
-                File.Delete(TempDestination);
-            if (File.Exists(Destination) && new FileInfo(Destination).Length == 0)
-                File.Delete(Destination);
-            _ = _chunkHandler.DeleteChunkFiles(_chunkHandler.RequestContainer.Length);
+            try
+            {
+                if (!Options.DeleteFilesOnFailure || _isCleared)
+                    return;
+                _isCleared = true;
+                if (File.Exists(TempDestination))
+                    File.Delete(TempDestination);
+                if (File.Exists(Destination) && new FileInfo(Destination).Length == 0)
+                    File.Delete(Destination);
+                await _chunkHandler.DeleteChunkFiles(_chunkHandler.RequestContainer.Length);
+            }
+            catch (Exception ex)
+            {
+                AddException(ex);
+            }
+
         }
 
         /// <summary>

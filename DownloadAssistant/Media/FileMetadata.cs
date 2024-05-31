@@ -59,6 +59,7 @@ namespace DownloadAssistant.Media
                     FileName = RemoveInvalidFileNameChars(Path.GetFileName(_uri.AbsoluteUri) ?? string.Empty);
                 if (FileName == string.Empty)
                     FileName = "requested_download_" + RemoveInvalidFileNameChars(_uri.Host);
+                FileName = FileName.Replace("%20", " ");
                 FileName = FileName.Length > 80 ? FileName.Remove(80) : FileName;
             }
         }
@@ -78,16 +79,28 @@ namespace DownloadAssistant.Media
             }
             else
             {
-                if (fileName.StartsWith("*"))
-                    fileName = Path.GetFileNameWithoutExtension(FileName) + fileName[1..];
+                if (fileName.Contains("*."))
+                    fileName = ReplaceFirst(fileName, "*.", Path.GetFileNameWithoutExtension(FileName) + ".");
                 if (fileName.Contains(".*"))
-                    fileName = fileName.Replace(".*", Extension);
-                if (fileName.Contains('*'))
-                    fileName = fileName.Remove('*');
+                    fileName = ReplaceFirst(fileName, ".*", Extension);
             }
             return fileName;
         }
 
+        /// <summary>
+        /// Replaces the first occurrence of a substring in the given text with a specified replacement.
+        /// </summary>
+        /// <param name="text">The original text.</param>
+        /// <param name="search">The substring to search for.</param>
+        /// <param name="replace">The replacement string.</param>
+        /// <returns>The modified text with the first occurrence replaced, or the original text if the substring is not found.</returns>
+        private static string ReplaceFirst(string text, string search, string replace)
+        {
+            int pos = text.IndexOf(search);
+            if (pos < 0)
+                return text;
+            return string.Concat(text.AsSpan(0, pos), replace, text.AsSpan(pos + search.Length));
+        }
         /// <summary>
         /// Removes all invalid characters for a filename out of a string.
         /// </summary>

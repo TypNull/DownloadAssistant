@@ -181,7 +181,7 @@
         {
             await ThrottleAsync(count);
 
-            return await _baseStream.ReadAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
+            return await _baseStream.ReadAsync(buffer.AsMemory(offset, count), cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -262,7 +262,7 @@
         {
             await ThrottleAsync(count);
 
-            await _baseStream.WriteAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
+            await _baseStream.WriteAsync(buffer.AsMemory(offset, count), cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
