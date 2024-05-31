@@ -32,7 +32,7 @@ namespace DownloadAssistant.Options
         /// <value>
         /// The write mode.
         /// </value>
-        public WriteMode WriteMode { get; init; }
+        public WriteMode WriteMode { get; init; } = WriteMode.Append;
 
         /// <summary>
         /// Gets or sets the length of the stream buffer. Default is 1024 (8kb).

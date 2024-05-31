@@ -29,7 +29,7 @@ namespace DownloadAssistant.Requests
         /// <summary>
         /// Specifies the mode of writing to the file.
         /// </summary>
-        private WriteMode _writeMode = WriteMode.Append;
+        private WriteMode _writeMode;
 
         /// <summary>
         /// An internal check variable to prevent parallel execution.
@@ -289,10 +289,13 @@ namespace DownloadAssistant.Requests
                         Destination = Path.Combine(Options.DestinationPath, Filename);
                     }
                     IOManager.Create(Destination);
+                    _writeMode = WriteMode.AppendOrTruncate;
                     break;
                 case WriteMode.Overwrite:
                 case WriteMode.AppendOrTruncate:
                     IOManager.Create(Destination);
+
+                    _writeMode = WriteMode.AppendOrTruncate;
                     break;
                 case WriteMode.Append:
                     if (!File.Exists(Destination) && new FileInfo(Destination).Length <= 0)
@@ -301,7 +304,6 @@ namespace DownloadAssistant.Requests
                     OnFailure(this, null);
                     break;
             }
-            _writeMode = WriteMode.Append;
         }
 
         /// <summary>
@@ -360,7 +362,6 @@ namespace DownloadAssistant.Requests
                     break;
 
             }
-            _writeMode = WriteMode.Append;
         }
 
         /// <summary>

@@ -79,7 +79,7 @@ namespace DownloadAssistant.Requests
         private readonly IProgress<float> _progress;
 
         private HttpGet _httpGet = null!;
-        private WriteMode _mode = WriteMode.Append;
+        private WriteMode _mode;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GetRequest"/> class.
@@ -104,7 +104,7 @@ namespace DownloadAssistant.Requests
         /// <exception cref="InvalidOperationException">Thrown when the mode is not WriteMode.Append, BytesWritten is greater than 0, Filename is empty, or Filename does not contain '.'.</exception>
         private void LoadWrittenBytes()
         {
-            if (_mode != WriteMode.Append || BytesWritten > 0 || Filename == string.Empty || !Filename.Contains('.'))
+            if ((_mode != WriteMode.Append && _mode != WriteMode.AppendOrTruncate) || BytesWritten > 0 || Filename == string.Empty || !Filename.Contains('.'))
                 return;
 
             FilePath = Path.Combine(Options.DirectoryPath, Filename);
@@ -261,11 +261,11 @@ namespace DownloadAssistant.Requests
                         FilePath = Path.Combine(Options.DirectoryPath, Filename);
                     }
                     IOManager.Create(FilePath);
-                    _mode = WriteMode.Append;
+                    _mode = WriteMode.AppendOrTruncate;
                     break;
                 case WriteMode.Overwrite:
                     IOManager.Create(FilePath);
-                    _mode = WriteMode.Append;
+                    _mode = WriteMode.AppendOrTruncate;
                     break;
                 case WriteMode.AppendOrTruncate:
                     LoadWrittenBytes();
@@ -277,8 +277,12 @@ namespace DownloadAssistant.Requests
                     break;
                 case WriteMode.Append:
                     LoadWrittenBytes();
-                    State = RequestState.Failed;
-                    SynchronizationContext.Post((object? o) => Options.RequestFailed?.Invoke((IRequest)o!, null), this);
+                    if (BytesWritten > ContentLength)
+                    {
+                        AddException(new FileLoadException($"The file specified in {FilePath} has exceeded the expected filesize of the actual downloaded file. Please adjust the WriteMode."));
+                        State = RequestState.Failed;
+                        SynchronizationContext.Post((object? o) => Options.RequestFailed?.Invoke((IRequest)o!, null), this);
+                    }
                     break;
             }
 
