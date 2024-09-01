@@ -54,6 +54,16 @@
         }
 
         /// <summary>
+        /// Gets the current transfer rate in bytes per second.
+        /// </summary>
+        public long CurrentBytesPerSecond { get; private set; }
+
+        /// <summary>
+        /// Reports and monitors data transfer speed using <see cref="IProgress{T}"/>.
+        /// </summary>
+        public IProgress<long>? SpeedReporter { get; set; }
+
+        /// <summary>
         /// Gets a value indicating whether the current stream supports reading.
         /// </summary>
         /// <returns>true if the stream supports reading; otherwise, false.</returns>
@@ -298,7 +308,7 @@
         /// <param name="bufferSizeInBytes">The buffer size in bytes.</param>
         protected async Task ThrottleAsync(int bufferSizeInBytes)
         {
-            if (_maximumBytesPerSecond <= 0 || bufferSizeInBytes <= 0)
+            if (SpeedReporter == null && (_maximumBytesPerSecond <= 0 || bufferSizeInBytes <= 0))
                 return;
 
             _byteCount += bufferSizeInBytes;
@@ -306,24 +316,31 @@
 
             if (elapsedMilliseconds > 0)
             {
-                long bps = _byteCount * 1000L / elapsedMilliseconds;
+                CurrentBytesPerSecond = _byteCount * 1000L / elapsedMilliseconds;
+                SpeedReporter?.Report(CurrentBytesPerSecond);
 
-                if (bps > _maximumBytesPerSecond)
+                if (_maximumBytesPerSecond > 0 && CurrentBytesPerSecond > _maximumBytesPerSecond)
                 {
                     long wakeElapsed = _byteCount * 1000L / _maximumBytesPerSecond;
                     int toSleep = (int)(wakeElapsed - elapsedMilliseconds);
 
                     if (toSleep > 1)
                     {
-                        try
-                        {
-                            await Task.Delay(toSleep);
-                        }
-                        catch { }
+                        await Task.Delay(toSleep);
                         Reset();
                     }
                 }
+                else
+                    Reset();
             }
+        }
+
+        /// <inheritdoc/>
+        public override void Close()
+        {
+            CurrentBytesPerSecond = 0;
+            SpeedReporter?.Report(0);
+            base.Close();
         }
 
         /// <summary>

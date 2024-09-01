@@ -9,7 +9,7 @@ namespace DownloadAssistant.Requests
     /// <summary>
     /// Represents a <see cref="WebRequest{TOptions, TCompleated}"/> that loads a response as a stream and saves it to a file.
     /// </summary>
-    public class LoadRequest : WebRequest<LoadRequestOptions, string>, IProgressableRequest
+    public class LoadRequest : WebRequest<LoadRequestOptions, string>, IProgressableRequest, ISpeedReportable
     {
         /// <summary>
         /// Indicates whether the request has been cleared.
@@ -107,9 +107,14 @@ namespace DownloadAssistant.Requests
         public string TempDestination { get; private set; } = string.Empty;
 
         /// <summary>
-        /// Gets the progress of the download process.
+        /// Retrieves the progress updates for the download process, enabling real-time monitoring of the download's advancement.
         /// </summary>
         public Progress<float> Progress => ((IProgressableRequest)_request).Progress;
+
+        /// <summary>
+        /// Retrieves the speed reporter for the download process, providing real-time metrics on the download speed. This property is only not null when <see cref="LoadRequestOptions.CreateSpeedReporter"/> is true.
+        /// </summary>
+        public SpeedReporter<long>? SpeedReporter => ((ISpeedReportable)_request).SpeedReporter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LoadRequest"/> class.
@@ -157,6 +162,7 @@ namespace DownloadAssistant.Requests
             {
                 _request = _chunkHandler.RequestContainer;
                 _request.StateChanged += OnStateChanged;
+                _chunkHandler.RequestContainer.SpeedReporter.Timeout = Options.SpeedReporterTimeout;
                 _chunkHandler.Add(CreateChunk(0, options));
 
                 Task.Run(() =>
@@ -172,6 +178,7 @@ namespace DownloadAssistant.Requests
             {
                 Filename = $"{(string.IsNullOrWhiteSpace(Options.Filename) ? "*.*" : Options.Filename)}.part",
                 RequestFailed = OnFailure,
+                SpeedReporter = Options.CreateSpeedReporter ? new() { Timeout = Options.SpeedReporterTimeout } : null,
                 RequestStarted = Options.RequestStarted,
                 RequestCompleated = OnCompletion,
             };
@@ -192,6 +199,7 @@ namespace DownloadAssistant.Requests
             options = options with
             {
                 Range = new LoadRange(new Index(index), Options.Chunks),
+                SpeedReporter = Options.CreateSpeedReporter ? new() { Timeout = Options.SpeedReporterTimeout } : null,
                 Filename = $"{(string.IsNullOrWhiteSpace(Options.Filename) ? "*.*" : Options.Filename)}.{1 + index}_chunk",
                 RequestCompleated = OnCompletion,
                 RequestFailed = OnFailure,

@@ -10,13 +10,13 @@ using System.Net.Http.Headers;
 namespace DownloadAssistant.Requests
 {
     /// <summary>
-    /// Represents a GET request to download content from a specified URL.
+    /// Represents a GET request to download content from a specified URL, supporting progress tracking and speed reporting.
     /// </summary>
     /// <remarks>
-    /// This class inherits from <see cref="WebRequest{TOptions, TResult}"/> and implements <see cref="IProgressableRequest"/>.
-    /// It starts an <see cref="HttpGet"/> and saves the content stream to a file.
+    /// This class inherits from <see cref="WebRequest{TOptions, TResult}"/> and implements <see cref="IProgressableRequest"/> and <see cref="ISpeedReportable"/>.
+    /// It initiates an <see cref="HttpGet"/> operation and manages the content stream, saving it to a file while providing progress updates and speed metrics.
     /// </remarks>
-    public class GetRequest : WebRequest<GetRequestOptions, string>, IProgressableRequest
+    public class GetRequest : WebRequest<GetRequestOptions, string>, IProgressableRequest, ISpeedReportable
     {
         /// <summary>
         /// Gets the number of bytes that were written to the destination file.
@@ -73,12 +73,19 @@ namespace DownloadAssistant.Requests
         public string FilePath { get; private set; } = string.Empty;
 
         /// <summary>
-        /// Gets the progress to receive updates of the download process.
+        /// Provides access to the progress updates of the download process, allowing monitoring of the download's advancement.
         /// </summary>
         public Progress<float> Progress => (Progress<float>)_progress;
         private readonly IProgress<float> _progress;
 
+        /// <summary>
+        /// Provides access to the speed reporter, which offers real-time metrics on the download speed.
+        /// </summary>
+        public SpeedReporter<long>? SpeedReporter => (SpeedReporter<long>?)_speedReporter;
+        private readonly IProgress<long>? _speedReporter;
+
         private HttpGet _httpGet = null!;
+        private ThrottledStream? _responseStream;
         private WriteMode _mode;
 
         /// <summary>
@@ -93,6 +100,7 @@ namespace DownloadAssistant.Requests
             Filename = Options.Filename.Trim();
             _mode = Options.WriteMode;
             _progress = Options.Progress ?? new();
+            _speedReporter = Options.SpeedReporter;
             LoadWrittenBytes();
             SetHttpGet();
             AutoStart();
@@ -306,12 +314,17 @@ namespace DownloadAssistant.Requests
         /// <returns>A task that represents the asynchronous write operation.</returns>
         private async Task WriteToFileAsync(HttpResponseMessage res)
         {
-            using ThrottledStream? responseStream = new(await res.Content.ReadAsStreamAsync(Token));
-            responseStream.MaximumBytesPerSecond = Options.MaxBytesPerSecond ?? 0;
+            using ThrottledStream? responseStream = new(await res.Content.ReadAsStreamAsync(Token))
+            {
+                MaximumBytesPerSecond = Options.MaxBytesPerSecond ?? 0,
+                SpeedReporter = SpeedReporter,
+            };
+            _responseStream = responseStream;
 
             using FileStream? fileStream = new(FilePath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
             await WriterAsync(responseStream, fileStream);
             await fileStream.FlushAsync();
+            _responseStream = null;
         }
 
         /// <summary>

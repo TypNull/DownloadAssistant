@@ -51,13 +51,18 @@ namespace DownloadAssistant.Options
         public uint MinReloadSize { get; set; } = 1048576 * 2; //2Mb
 
         /// <summary>
-        /// Gets or sets the maximum of bytes that can be downloaded by the <see cref="GetRequest"/> per second.
+        /// Configures the maximum download rate in bytes per second for the <see cref="GetRequest"/>.
         /// </summary>
         /// <value>
-        /// The maximum bytes per second.
+        /// The limit for bytes per second, or null for unlimited speed.
         /// </value>
         public long? MaxBytesPerSecond { get => _maxBytesPerSecond; init => _maxBytesPerSecond = value > 1 ? value : null; }
         private readonly long? _maxBytesPerSecond = null;
+
+        /// <summary>
+        /// Initializes a speed reporter to monitor and report the download speed in bytes per second.
+        /// </summary>
+        public SpeedReporter<long>? SpeedReporter { get; init; }
 
         /// <summary>
         /// Gets or sets the minimum content byte of the Request.
@@ -137,6 +142,7 @@ namespace DownloadAssistant.Options
             WriteMode = options.WriteMode;
             BufferLength = options.BufferLength;
             MaxBytesPerSecond = options.MaxBytesPerSecond;
+            SpeedReporter = options.SpeedReporter;
             MinByte = options.MinByte;
             MaxByte = options.MaxByte;
             SupportsHeadRequest = options.SupportsHeadRequest;

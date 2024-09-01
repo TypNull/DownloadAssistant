@@ -1,6 +1,5 @@
 ﻿using DownloadAssistant.Base;
 using DownloadAssistant.Requests;
-using Requests;
 using Requests.Options;
 
 namespace DownloadAssistant.Utilities
@@ -15,7 +14,7 @@ namespace DownloadAssistant.Utilities
         /// <summary>
         /// Container for all chunks of the file download.
         /// </summary>
-        public ProgressableContainer<GetRequest> RequestContainer { get; } = new();
+        public ExtendedContainer<GetRequest> RequestContainer { get; } = new();
 
         /// <summary>
         /// The number of bytes that have been written to the temporary file.

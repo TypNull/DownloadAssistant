@@ -49,6 +49,18 @@ namespace DownloadAssistant.Options
         private long? _maxBytesPerSecond = null;
 
         /// <summary>
+        /// Determines whether a speed reporter should be initialized to monitor and report the download speed in bytes per second.
+        /// </summary>
+        public bool CreateSpeedReporter { get; init; } = false;
+
+        /// <summary>
+        /// The timeout for the speed reporter in milliseconds. This property can only be used when <see cref="CreateSpeedReporter"/> is true.
+        /// Note that the actual reporting interval may not be exactly the set timeout due to various factors.
+        /// </summary>
+        public int SpeedReporterTimeout { get => _speedReporterTimeout; init => _speedReporterTimeout = value < 0 ? 0 : value; }
+        private int _speedReporterTimeout = 0;
+
+        /// <summary>
         /// Gets or sets a value indicating whether the server supports the HEAD request. Default is true.
         /// </summary>
         public bool SupportsHeadRequest { get; set; } = true;
@@ -130,6 +142,8 @@ namespace DownloadAssistant.Options
             _temporaryPath = options.TempDestination;
             _destinationPath = options.DestinationPath;
             DeleteFilesOnFailure = options.DeleteFilesOnFailure;
+            SpeedReporterTimeout = options.SpeedReporterTimeout;
+            CreateSpeedReporter = options.CreateSpeedReporter;
             WriteMode = options.WriteMode;
             BufferLength = options.BufferLength;
             MaxBytesPerSecond = options.MaxBytesPerSecond;
