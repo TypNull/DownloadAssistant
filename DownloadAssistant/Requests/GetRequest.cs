@@ -43,6 +43,11 @@ namespace DownloadAssistant.Requests
         public long? PartialContentLength { get; private set; }
 
         /// <summary>
+        /// Gets the current transfer rate in bytes per second.
+        /// </summary>
+        public long CurrentBytesPerSecond => _responseStream?.CurrentBytesPerSecond ?? 0;
+
+        /// <summary>
         /// Gets the name of the file that should be downloaded.
         /// </summary>
         public string Filename { get; private set; }

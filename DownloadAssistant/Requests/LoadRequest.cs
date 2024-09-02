@@ -22,9 +22,18 @@ namespace DownloadAssistant.Requests
         private readonly ChunkHandler _chunkHandler = new();
 
         /// <summary>
-        /// Represents the current <see cref="IRequest"/> instance.
+        /// This property exposes the inner <see cref="IRequest"/> instance, which can be either a <see cref="GetRequest"/> 
+        /// or an <see cref="ExtendedContainer{GetRequest}"/> with <see cref="GetRequest"/>'s.
         /// </summary>
-        private IRequest _request = null!;
+        /// <remarks>
+        /// <para>
+        /// <b>WARNING:</b> Modifying this object can lead 
+        /// to unexpected behavior and is not recommended. Incorrect usage can result in data corruption, incomplete downloads, 
+        /// or other issues! For most use cases, use higher-level methods and properties 
+        /// provided by the <see cref="LoadRequest"/> class to avoid potential pitfalls.
+        /// </para>
+        /// </remarks>
+        public IRequest InnerRequest { get; protected set; } = null!;
 
         /// <summary>
         /// Specifies the mode of writing to the file.
@@ -42,7 +51,7 @@ namespace DownloadAssistant.Requests
         public LoadRange Range => Options.Range;
 
         /// <inheritdoc/>
-        public override Task Task => _request.Task;
+        public override Task Task => InnerRequest.Task;
 
         /// <summary>
         /// Gets the filename of the content that is being downloaded.
@@ -50,14 +59,19 @@ namespace DownloadAssistant.Requests
         public string? Filename { get; private set; }
 
         /// <summary>
+        /// Gets the current transfer rate in bytes per second.
+        /// </summary>
+        public long CurrentBytesPerSecond => IsChunked ? _chunkHandler.RequestContainer.Sum(x => x.CurrentBytesPerSecond) : ((GetRequest)InnerRequest).CurrentBytesPerSecond;
+
+        /// <summary>
         /// Gets the number of bytes that have been written to the temporary file.
         /// </summary>
-        public long BytesWritten => IsChunked ? _chunkHandler.BytesWritten : ((GetRequest)_request).BytesWritten;
+        public long BytesWritten => IsChunked ? _chunkHandler.BytesWritten : ((GetRequest)InnerRequest).BytesWritten;
 
         /// <summary>
         /// Gets the number of bytes that have been downloaded.
         /// </summary>
-        public long BytesDownloaded => IsChunked ? _chunkHandler.BytesDownloaded : ((GetRequest)_request).BytesWritten;
+        public long BytesDownloaded => IsChunked ? _chunkHandler.BytesDownloaded : ((GetRequest)InnerRequest).BytesWritten;
 
         /// <summary>
         /// Gets the <see cref="AggregateException"/> that contains the exceptions thrown during the request.
@@ -66,11 +80,11 @@ namespace DownloadAssistant.Requests
         {
             get
             {
-                if (base.Exception != null && _request.Exception != null)
-                    return new(base.Exception!, _request.Exception!);
+                if (base.Exception != null && InnerRequest.Exception != null)
+                    return new(base.Exception!, InnerRequest.Exception!);
                 else if (base.Exception != null)
                     return base.Exception;
-                return _request.Exception;
+                return InnerRequest.Exception;
             }
         }
 
@@ -84,12 +98,12 @@ namespace DownloadAssistant.Requests
                 if (IsChunked)
                     return _chunkHandler.Requests.Sum(x => x.PartialContentLength ?? 0);
                 else
-                    return ((GetRequest)_request).ContentLength;
+                    return ((GetRequest)InnerRequest).ContentLength;
             }
         }
 
         /// <inheritdoc/>
-        public override int AttemptCounter => _chunkHandler.Requests.Max(x => x.AttemptCounter);
+        public override int AttemptCounter => IsChunked ? _chunkHandler.Requests.Max(x => x.AttemptCounter) : ((GetRequest)InnerRequest).AttemptCounter;
 
         /// <summary>
         /// Gets a value indicating whether this <see cref="LoadRequest"/> downloads in parts.
@@ -109,12 +123,12 @@ namespace DownloadAssistant.Requests
         /// <summary>
         /// Retrieves the progress updates for the download process, enabling real-time monitoring of the download's advancement.
         /// </summary>
-        public Progress<float> Progress => ((IProgressableRequest)_request).Progress;
+        public Progress<float> Progress => ((IProgressableRequest)InnerRequest).Progress;
 
         /// <summary>
         /// Retrieves the speed reporter for the download process, providing real-time metrics on the download speed. This property is only not null when <see cref="LoadRequestOptions.CreateSpeedReporter"/> is true.
         /// </summary>
-        public SpeedReporter<long>? SpeedReporter => ((ISpeedReportable)_request).SpeedReporter;
+        public SpeedReporter<long>? SpeedReporter => ((ISpeedReportable)InnerRequest).SpeedReporter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LoadRequest"/> class.
@@ -160,8 +174,8 @@ namespace DownloadAssistant.Requests
 
             if (IsChunked)
             {
-                _request = _chunkHandler.RequestContainer;
-                _request.StateChanged += OnStateChanged;
+                InnerRequest = _chunkHandler.RequestContainer;
+                InnerRequest.StateChanged += OnStateChanged;
                 _chunkHandler.RequestContainer.SpeedReporter.Timeout = Options.SpeedReporterTimeout;
                 _chunkHandler.Add(CreateChunk(0, options));
 
@@ -183,8 +197,8 @@ namespace DownloadAssistant.Requests
                 RequestCompleated = OnCompletion,
             };
 
-            _request = new GetRequest(Url, options);
-            _request.StateChanged += OnStateChanged;
+            InnerRequest = new GetRequest(Url, options);
+            InnerRequest.StateChanged += OnStateChanged;
             AutoStart();
         }
 
@@ -217,10 +231,10 @@ namespace DownloadAssistant.Requests
         /// <param name="state">The new state of the request, represented by the <see cref="RequestState"/> enumeration.</param>
         private void OnStateChanged(object? sender, RequestState state)
         {
-            if (IsChunked && _request.State == RequestState.Compleated)
+            if (IsChunked && InnerRequest.State == RequestState.Compleated)
                 State = RequestState.Running;
             else if (State == RequestState.Idle)
-                State = _request.State;
+                State = InnerRequest.State;
         }
 
         /// <summary>
@@ -344,7 +358,7 @@ namespace DownloadAssistant.Requests
                     IOManager.Create(TempDestination);
                     break;
                 case WriteMode.Append:
-                    if (File.Exists(Destination) && new FileInfo(TempDestination).Length > 0)
+                    if (File.Exists(Destination) && new FileInfo(Destination).Length > 0)
                     {
                         AddException(new FileLoadException($"The file {Filename} at {Destination} already exists. Please change the WriteMode or delete the file."));
                         OnFailure(this, null);
@@ -475,7 +489,7 @@ namespace DownloadAssistant.Requests
         public override void Start()
         {
             State = RequestState.Idle;
-            _request.Start();
+            InnerRequest.Start();
         }
 
         /// <summary>
@@ -484,7 +498,7 @@ namespace DownloadAssistant.Requests
         public override void Pause()
         {
             base.Pause();
-            _request.Pause();
+            InnerRequest.Pause();
         }
 
         /// <summary>
@@ -493,7 +507,7 @@ namespace DownloadAssistant.Requests
         public override void Cancel()
         {
             base.Cancel();
-            _request.Cancel();
+            InnerRequest.Cancel();
         }
 
         /// <summary>
@@ -508,7 +522,7 @@ namespace DownloadAssistant.Requests
         public override void Dispose()
 #pragma warning restore CA1816
         {
-            _request.Dispose();
+            InnerRequest.Dispose();
             base.Dispose();
         }
     }
