@@ -10,7 +10,7 @@
     <PackageProjectUrl></PackageProjectUrl>
     <PackageIcon>logo.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <Description>A free to use library as a download manager.
 Includes retry, priority, cancel, etc.. function.
@@ -26,9 +26,8 @@ Features:
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <Company>Shard</Company>
     <Authors>Meyn</Authors>
-    <PackageReleaseNotes>Implement WriteMode.AppendOrTruncate
-Implement RequestFailed to LoadRequest
-Implement Download Speed Measurement</PackageReleaseNotes>
+    <PackageReleaseNotes>Fix LoadRequest empty temporary file existence issue
+Update Shard.Requests to 2.1.6</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/TypNull/DownloadAssistant</RepositoryUrl>
   </PropertyGroup>
 
@@ -48,7 +47,7 @@ Implement Download Speed Measurement</PackageReleaseNotes>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Shard.Requests" Version="2.1.4" />
+    <PackageReference Include="Shard.Requests" Version="2.1.6" />
   </ItemGroup>
 
   <ItemGroup>

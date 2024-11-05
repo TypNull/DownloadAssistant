@@ -245,7 +245,7 @@ namespace DownloadAssistant.Requests
         private void OnFailure(IRequest? request, HttpResponseMessage? element)
         {
             State = RequestState.Failed;
-            Pause();
+            Cancel();
             _ = ClearOnFailure();
             SynchronizationContext.Post((object? o) => Options.RequestFailed?.Invoke((IRequest)o!, element), this);
         }
@@ -314,13 +314,18 @@ namespace DownloadAssistant.Requests
                     _writeMode = WriteMode.AppendOrTruncate;
                     break;
                 case WriteMode.Overwrite:
-                case WriteMode.AppendOrTruncate:
                     IOManager.Create(Destination);
 
                     _writeMode = WriteMode.AppendOrTruncate;
                     break;
+                case WriteMode.AppendOrTruncate:
+                    if (!File.Exists(Destination) || new FileInfo(Destination).Length <= 0)
+                        break;
+                    IOManager.Create(Destination);
+                    _writeMode = WriteMode.AppendOrTruncate;
+                    break;
                 case WriteMode.Append:
-                    if (!File.Exists(Destination) && new FileInfo(Destination).Length <= 0)
+                    if (!File.Exists(Destination) || new FileInfo(Destination).Length <= 0)
                         break;
                     AddException(new FileLoadException($"The file {Filename} at {Destination} already exists. Please change the WriteMode to Create or increase the MinReloadSize."));
                     OnFailure(this, null);
@@ -454,13 +459,12 @@ namespace DownloadAssistant.Requests
                     File.Delete(TempDestination);
                 if (File.Exists(Destination) && new FileInfo(Destination).Length == 0)
                     File.Delete(Destination);
-                await _chunkHandler.DeleteChunkFiles(_chunkHandler.RequestContainer.Length);
+                await _chunkHandler.DeleteChunkFiles(_chunkHandler.RequestContainer.Count);
             }
             catch (Exception ex)
             {
                 AddException(ex);
             }
-
         }
 
         /// <summary>

@@ -123,6 +123,7 @@ namespace DownloadAssistant.Requests
             FilePath = Path.Combine(Options.DirectoryPath, Filename);
             if (File.Exists(FilePath))
                 BytesWritten = new FileInfo(FilePath).Length;
+            BytesWritten = BytesWritten == 0 ? -1 : BytesWritten;
         }
 
         /// <summary>
@@ -385,8 +386,6 @@ namespace DownloadAssistant.Requests
         /// <param name="noBytesWritten">A boolean value that indicates whether the request didn't know before that the file on the drive exists.</param>
         /// <returns><c>true</c> if the file should be deleted; otherwise, <c>false</c>.</returns>
         private bool CheckClearFile(bool noBytesWritten) => ((!IsPartial()) && ShouldBePartial() && BytesWritten > 0) || (noBytesWritten && BytesWritten < Options.MinReloadSize);
-
-
 
         /// <summary>
         /// Disposes the <see cref="GetRequest"/> instance.
