@@ -10,7 +10,7 @@
     <PackageProjectUrl></PackageProjectUrl>
     <PackageIcon>logo.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <Description>A free to use library as a download manager.
 Includes retry, priority, cancel, etc.. function.
@@ -26,8 +26,7 @@ Features:
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <Company>Shard</Company>
     <Authors>Meyn</Authors>
-    <PackageReleaseNotes>Fix LoadRequest empty temporary file existence issue
-Update Shard.Requests to 2.1.6</PackageReleaseNotes>
+    <PackageReleaseNotes>Update Shard.Requests to 2.2.0</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/TypNull/DownloadAssistant</RepositoryUrl>
   </PropertyGroup>
 
@@ -47,7 +46,7 @@ Update Shard.Requests to 2.1.6</PackageReleaseNotes>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Shard.Requests" Version="2.1.6" />
+    <PackageReference Include="Shard.Requests" Version="2.2.0" />
   </ItemGroup>
 
   <ItemGroup>
