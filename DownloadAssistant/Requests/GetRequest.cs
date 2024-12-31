@@ -141,19 +141,14 @@ namespace DownloadAssistant.Requests
             {
                 await Task;
                 _progress.Report(1f);
-                SynchronizationContext.Post(delegate (object? o)
-                {
-                    Options.RequestCompleated?.Invoke((GetRequest)o!, FilePath);
-                }, this);
-
+                SynchronizationContext.Post((o) => Options.RequestCompleated?.Invoke((GetRequest)o!, FilePath), this);
             }
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HttpGet"/> class that holds the HTTP information.
         /// </summary>
-        private void SetHttpGet()
-        => _httpGet = new(GetPresetRequestMessage(new(HttpMethod.Get, Url)), Options.SupportsHeadRequest)
+        private void SetHttpGet() => _httpGet = new(GetPresetRequestMessage(new(HttpMethod.Get, Url)), Options.SupportsHeadRequest)
         {
             Token = Token,
             Range = Range,
@@ -173,12 +168,15 @@ namespace DownloadAssistant.Requests
                 result = await LoadAsync();
                 result.FailedReturn?.Dispose();
                 if (State == RequestState.Running && result.Successful)
+                {
                     _progress.Report(1f);
+                    await (Options.InterceptCompletionAsync?.Invoke(this) ?? Task.CompletedTask);
+                }
             }
             catch (Exception ex)
             {
                 AddException(ex);
-                Debug.Assert(true, ex.Message);
+                Debug.Assert(false, ex.Message);
             }
 
             return result;
@@ -198,7 +196,7 @@ namespace DownloadAssistant.Requests
                 return new(false, FilePath, res);
             bool noBytesWritten = BytesWritten <= 0;
 
-            if (noBytesWritten)
+            if (string.IsNullOrEmpty(ContentName))
                 SetFileInfo(res);
 
             if (IsFinished())
@@ -247,7 +245,6 @@ namespace DownloadAssistant.Requests
                 PartialContentLength = null;
             }
 
-
             return res;
         }
 
@@ -283,11 +280,10 @@ namespace DownloadAssistant.Requests
                     break;
                 case WriteMode.AppendOrTruncate:
                     LoadWrittenBytes();
-                    if (BytesWritten > ContentLength)
-                    {
-                        IOManager.Create(FilePath);
-                        BytesWritten = 0;
-                    }
+                    if (BytesWritten <= ContentLength)
+                        break;
+                    IOManager.Create(FilePath);
+                    BytesWritten = 0;
                     break;
                 case WriteMode.Append:
                     LoadWrittenBytes();
@@ -299,7 +295,6 @@ namespace DownloadAssistant.Requests
                     }
                     break;
             }
-
             Options.InfosFetched?.Invoke(this);
         }
 

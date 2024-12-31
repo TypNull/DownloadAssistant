@@ -1,6 +1,5 @@
 ﻿using DownloadAssistant.Base;
 using DownloadAssistant.Requests;
-using Requests.Options;
 
 namespace DownloadAssistant.Utilities
 {
@@ -30,11 +29,17 @@ namespace DownloadAssistant.Utilities
         /// Gets all the requests that are in the <see cref="RequestContainer"/>.
         /// </summary>
         public GetRequest[] Requests => RequestContainer.ToArray();
-        private readonly List<GetRequest> _copied = new();
+
+        private int[] _stateArray = Array.Empty<int>();
 
         private bool _infoFetched = false;
 
         private int _isCopying = 0;
+
+        /// <summary>
+        /// Gets a value indicating whether all requests in the <see cref="ChunkHandler"/> have been completed.
+        /// </summary>
+        public bool AllCompleted => _stateArray.All(state => state > 0);
 
         /// <summary>
         /// Merges all chunked parts of a file into one large file.
@@ -43,27 +48,19 @@ namespace DownloadAssistant.Utilities
         /// <returns>A task that represents the asynchronous operation. The task result contains a boolean value indicating whether all chunks were successfully merged.</returns>
         public async Task<bool> StartMergeTo(string destination)
         {
-            bool allMerged = false;
-            //Return % of merging
-            if (Interlocked.CompareExchange(ref _isCopying, 1, 0) == 1)
-                return allMerged;
-            //Check if the fist part was downloaded
-            if (Requests[0].State != RequestState.Compleated)
+            if (Interlocked.CompareExchange(ref _isCopying, 1, 0) == 1) return false;
+
+            if (_stateArray.Length == 0 || _stateArray[0] < 1)
             {
                 _isCopying = 0;
-                return allMerged;
+                return false;
             }
 
             await MergeChunks(destination);
 
             Interlocked.CompareExchange(ref _isCopying, 0, 1);
-            if (Requests.All((s) => s.State == RequestState.Compleated))
-            {
-                if (Requests.Length == _copied.Count)
-                    allMerged = true;
-                else allMerged = await StartMergeTo(destination);
-            }
-            return allMerged;
+            return AllCompleted && (_stateArray.All(x => x == 2) || await StartMergeTo(destination));
+
         }
 
         /// <summary>
@@ -73,22 +70,24 @@ namespace DownloadAssistant.Utilities
         /// <returns>A task that represents the asynchronous operation.</returns>
         private async Task MergeChunks(string destination)
         {
-            //FileStream to merge the chunked files
             FileStream? outputStream = null;
             try
             {
                 outputStream = new(destination, FileMode.Append);
                 for (int i = 0; i < Requests.Length; i++)
                 {
-                    if (Requests[i].State != RequestState.Compleated)
+                    int state = _stateArray[i];
+                    if (state < 1)
                         break;
-                    if (_copied.Contains(Requests[i]))
+                    if (state > 1)
                         continue;
+
                     string path = Requests[i].FilePath;
                     if (!File.Exists(path))
                         break;
+
                     await WriteChunkToDestination(path, outputStream);
-                    _copied.Add(Requests[i]);
+                    Interlocked.Exchange(ref _stateArray[i], 2);
                 }
             }
             catch (Exception) { }
@@ -125,8 +124,7 @@ namespace DownloadAssistant.Utilities
         /// <returns>A task that represents the asynchronous operation. The task result contains a boolean value indicating whether the operation was successful.</returns>
         public async Task<bool> TrySetBytesAsync(long bytes)
         {
-            if (BytesWritten != 0 || bytes == 0)
-                return false;
+            if (BytesWritten != 0 || bytes == 0) return false;
 
             (int count, bool hasRest) = CalculatePartialContentLength(bytes);
 
@@ -172,9 +170,20 @@ namespace DownloadAssistant.Utilities
         {
             for (int i = 0; i < count; i++)
             {
-                _copied.Add(RequestContainer[i]);
+                Interlocked.Exchange(ref _stateArray[i], 2);
                 _ = RequestContainer[i].RunToCompleatedAsync();
             }
+        }
+
+        /// <summary>
+        /// Marks the specified request chunk as completed and ready to be merged.
+        /// </summary>
+        /// <param name="request">The request chunk to mark as completed.</param>
+        public void MarkChunkAsCompleted(GetRequest request)
+        {
+            int index = Array.IndexOf(Requests, request);
+            if (index >= 0)
+                Interlocked.CompareExchange(ref _stateArray[index], 1, 0);
         }
 
         /// <summary>
@@ -213,13 +222,16 @@ namespace DownloadAssistant.Utilities
             }
         }
 
-
-
         /// <summary>
         /// Adds a <see cref="GetRequest"/> that represents a chunk to the RequestContainer.
         /// </summary>
         /// <param name="request">The <see cref="GetRequest"/> that represents a chunked part of the data.</param>
-        public void Add(GetRequest request) => RequestContainer.Add(request);
+        public void Add(GetRequest request)
+        {
+            RequestContainer.Add(request);
+            if (_stateArray.Length < Requests.Length)
+                Array.Resize(ref _stateArray, Requests.Length);
+        }
 
         /// <summary>
         /// Sets the ContentLength for all chunks based on a specified <see cref="GetRequest"/>.

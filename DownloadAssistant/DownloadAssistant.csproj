@@ -10,7 +10,7 @@
     <PackageProjectUrl></PackageProjectUrl>
     <PackageIcon>logo.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Version>1.0.5</Version>
+    <Version>1.0.6</Version>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <Description>A free to use library as a download manager.
 Includes retry, priority, cancel, etc.. function.
@@ -26,7 +26,13 @@ Features:
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <Company>Shard</Company>
     <Authors>Meyn</Authors>
-    <PackageReleaseNotes>Update Shard.Requests to 2.2.0</PackageReleaseNotes>
+    <PackageReleaseNotes>Implement InterceptCompletionAsync for GetRequest.
+Fix SubsequentRequest functionality in LoadRequest.
+Resolve file information parsing issues in GetRequest partial downloads.
+Fix exception handling for Append mode in LoadRequest.
+Address chunk merging issues in LoadRequest.
+Update `Shard.Requests` to version 2.2.1.
+Update unit tests</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/TypNull/DownloadAssistant</RepositoryUrl>
   </PropertyGroup>
 
@@ -46,7 +52,7 @@ Features:
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Shard.Requests" Version="2.2.0" />
+    <PackageReference Include="Shard.Requests" Version="2.2.1" />
   </ItemGroup>
 
   <ItemGroup>

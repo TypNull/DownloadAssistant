@@ -127,6 +127,11 @@ namespace DownloadAssistant.Options
         public Notify<GetRequest>? InfosFetched { get; init; }
 
         /// <summary>
+        /// Gets or sets a function that intercepts the completion of the request, allowing for custom asynchronous logic to modify or prevent the completion.
+        /// </summary>
+        public Func<GetRequest, Task>? InterceptCompletionAsync { get; set; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="GetRequestOptions"/> class.
         /// </summary>
         public GetRequestOptions() { }
@@ -146,6 +151,7 @@ namespace DownloadAssistant.Options
             MinByte = options.MinByte;
             MaxByte = options.MaxByte;
             SupportsHeadRequest = options.SupportsHeadRequest;
+            InterceptCompletionAsync = options.InterceptCompletionAsync;
             Progress = options.Progress;
             Range = options.Range;
             InfosFetched = options.InfosFetched;

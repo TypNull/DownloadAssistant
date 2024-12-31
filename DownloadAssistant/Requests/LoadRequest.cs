@@ -180,11 +180,11 @@ namespace DownloadAssistant.Requests
                 _chunkHandler.Add(CreateChunk(0, options));
 
                 Task.Run(() =>
-                {
-                    for (int i = 1; i < Options.Chunks; i++)
-                        _chunkHandler.Add(CreateChunk(i, options));
-                    AutoStart();
-                });
+                    {
+                        for (int i = 1; i < Options.Chunks; i++)
+                            _chunkHandler.Add(CreateChunk(i, options));
+                        AutoStart();
+                    });
                 return;
             }
 
@@ -194,7 +194,8 @@ namespace DownloadAssistant.Requests
                 RequestFailed = OnFailure,
                 SpeedReporter = Options.CreateSpeedReporter ? new() { Timeout = Options.SpeedReporterTimeout } : null,
                 RequestStarted = Options.RequestStarted,
-                RequestCompleated = OnCompletion,
+                SubsequentRequest = Options.SubsequentRequest,
+                InterceptCompletionAsync = OnCompletionAsync
             };
 
             InnerRequest = new GetRequest(Url, options);
@@ -215,8 +216,8 @@ namespace DownloadAssistant.Requests
                 Range = new LoadRange(new Index(index), Options.Chunks),
                 SpeedReporter = Options.CreateSpeedReporter ? new() { Timeout = Options.SpeedReporterTimeout } : null,
                 Filename = $"{(string.IsNullOrWhiteSpace(Options.Filename) ? "*.*" : Options.Filename)}.{1 + index}_chunk",
-                RequestCompleated = OnCompletion,
                 RequestFailed = OnFailure,
+                InterceptCompletionAsync = OnCompletionAsync
             };
             if (index == 0)
                 options.RequestStarted += Options.RequestStarted;
@@ -263,7 +264,6 @@ namespace DownloadAssistant.Requests
             Filename = request.ContentName;
             try
             {
-
                 if (IsChunked)
                 {
                     _chunkHandler.SetInfos(request);
@@ -275,7 +275,6 @@ namespace DownloadAssistant.Requests
                     if (State != RequestState.Running)
                         return;
                 }
-
 
                 SynchronizationContext.Post((o) => Options.InfosFetched?.Invoke((LoadRequest)o!), this);
                 ExcludedExtensions(request.ContentExtension);
@@ -315,7 +314,6 @@ namespace DownloadAssistant.Requests
                     break;
                 case WriteMode.Overwrite:
                     IOManager.Create(Destination);
-
                     _writeMode = WriteMode.AppendOrTruncate;
                     break;
                 case WriteMode.AppendOrTruncate:
@@ -365,17 +363,20 @@ namespace DownloadAssistant.Requests
                 case WriteMode.Append:
                     if (File.Exists(Destination) && new FileInfo(Destination).Length > 0)
                     {
-                        AddException(new FileLoadException($"The file {Filename} at {Destination} already exists. Please change the WriteMode or delete the file."));
+                        AddException(new FileLoadException($"The file '{Filename}' already exists at '{Destination}'. Resolve by changing WriteMode, deleting the file, or avoiding chunked requests."));
                         OnFailure(this, null);
                         break;
                     }
                     if (!File.Exists(TempDestination))
                         break;
-                    if (new FileInfo(TempDestination).Length < (request.FullContentLength ?? (request.PartialContentLength * Options.Chunks)))
+                    long appendByteLength = new FileInfo(TempDestination).Length;
+                    if (appendByteLength > (request.FullContentLength ?? (request.PartialContentLength * Options.Chunks)))
                     {
                         AddException(new FileLoadException($"The file specified in {TempDestination} has exceeded the expected filesize of the actual downloaded file. Please adjust the WriteMode."));
                         OnFailure(this, null);
+                        break;
                     }
+                    await _chunkHandler.TrySetBytesAsync(appendByteLength);
                     break;
                 case WriteMode.AppendOrTruncate:
                     IOManager.Create(Destination);
@@ -411,25 +412,29 @@ namespace DownloadAssistant.Requests
         /// Handles the completion of the request.
         /// </summary>
         /// <param name="request">The <see cref="IRequest"/> instance that has completed.</param>
-        /// <param name="_">This parameter is not used.</param>
         /// <remarks>
         /// This method handles the completion of the request. If the request is chunked, it starts merging the chunks. If the request is not chunked, it moves the temporary file to the destination.
         /// </remarks>
-        private async void OnCompletion(IRequest? request, string? _)
+        private async Task OnCompletionAsync(IRequest? request)
         {
             if (request == null)
                 return;
             bool canMove = false;
             if (IsChunked)
             {
-                if (Options.MergeWhileProgress || _chunkHandler.Requests.All(request => request.State == RequestState.Compleated))
+                _chunkHandler.MarkChunkAsCompleted((GetRequest)request);
+                if (Options.MergeWhileProgress || _chunkHandler.AllCompleted)
                     canMove = await _chunkHandler.StartMergeTo(TempDestination);
             }
             else
                 canMove = true;
 
             if (canMove)
+            {
+                if (Options.SubsequentRequest != null)
+                    ((GetRequest)request).TrySetSubsequentRequest(Options.SubsequentRequest);
                 TempToDestination();
+            }
         }
 
         /// <summary>
@@ -522,12 +527,11 @@ namespace DownloadAssistant.Requests
         /// <summary>
         /// Releases all resources used by the <see cref="LoadRequest"/>.
         /// </summary>
-#pragma warning disable CA1816
         public override void Dispose()
-#pragma warning restore CA1816
         {
             InnerRequest.Dispose();
             base.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

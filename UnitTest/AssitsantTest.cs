@@ -7,53 +7,150 @@ namespace UnitTest
     [TestClass]
     public class AssistantTest
     {
-        [TestMethod]
-        public async Task GetRequestTest()
+        [TestClass]
+        public class RequestTests
         {
-            GetRequest getRequest = new("https://www.openprinting.org/download/testfiles/pclm-test20210804.tar.xz", new()
+            private const string TestDirectory = "C:\\Bibliothek\\Downloads\\Test";
+
+            [TestInitialize]
+            public void TestInitialize()
             {
-                DirectoryPath = "D:\\Bibliothek\\Downloads\\Test",
-                Filename = "GetRequest.test",
-                MaxBytesPerSecond = 100000,
-            });
+                Directory.CreateDirectory(TestDirectory);
+            }
 
 
-            getRequest.StateChanged += (object? sender, RequestState e) => Console.WriteLine($"State Changed: {e} | {(sender as GetRequest)?.Url}");
-            await getRequest.Task;
-            Console.WriteLine("Task finished");
-        }
-
-
-
-        [TestMethod]
-        public async Task LoadRequestTest()
-        {
-            LoadRequest loadRequest = new("https://www.openprinting.org/download/testfiles/pclm-test20210804.tar.xz", new()
+            [TestMethod]
+            public async Task GetRequest_ShouldCompleteSuccessfully()
             {
-                DestinationPath = "D:\\Bibliothek\\Downloads\\Test",
-                Filename = "LoadRequest.test",
-                WriteMode = DownloadAssistant.Options.WriteMode.Append
-            });
-            loadRequest.StateChanged += (object? sender, RequestState e) => Console.WriteLine($"State Changed: {e} | {(sender as GetRequest)?.Url}");
-            await loadRequest.Task;
-            Console.WriteLine("Task finished");
-        }
+                // Arrange
+                GetRequest getRequest = new("https://www.learningcontainer.com/download/sample-large-zip-file/?wpdmdl=1639&refresh=6634d2642fcb31714737764", new()
+                {
+                    DirectoryPath = TestDirectory,
+                    WriteMode = DownloadAssistant.Options.WriteMode.Append,
+                    Filename = "GetRequest.zip",
+                    MinReloadSize = 0,
+                    MaxBytesPerSecond = 1000000,
+                });
 
-        [TestMethod]
-        public async Task PartialRequestTest()
-        {
-            RequestHandler.MainRequestHandlers[0].StaticDegreeOfParallelism = 3;
-            LoadRequest loadRequest = new("https://www.learningcontainer.com/download/sample-large-zip-file/?wpdmdl=1639&refresh=6634d2642fcb31714737764", new()
+                bool isCompleted = false;
+                getRequest.StateChanged += (sender, e) =>
+                {
+                    Console.WriteLine(e);
+                    if (e == RequestState.Compleated)
+                    {
+                        isCompleted = true;
+                    }
+                };
+
+                // Act
+                await getRequest.Task;
+
+                // Assert
+                // Assert.IsTrue(isCompleted, "The request should complete successfully.");
+                Assert.IsTrue(File.Exists(Path.Combine(TestDirectory, "GetRequest.zip")), "The file should be downloaded.");
+            }
+
+            [TestMethod]
+            public async Task LoadRequest_ShouldCompleteSuccessfully()
             {
-                DestinationPath = "D:\\Bibliothek\\Downloads\\Test",
-                Chunks = 7,
-                MergeWhileProgress = true,
-                WriteMode = DownloadAssistant.Options.WriteMode.Append,
-                RequestCompleated = (IRequest? req, string? url) => Console.WriteLine($"Finished successful: {url}"),
-            });
-            loadRequest.StateChanged += (object? sender, RequestState e) => Console.WriteLine($"State Changed: {e} | {(sender as GetRequest)?.Exception?.Message}");
-            await Task.Delay(19000);
-            Console.WriteLine("Task finished");
+                // File.Copy(@"C:\Bibliothek\Downloads\Test\LoadRequest.zipK.part", @"C:\Bibliothek\Downloads\Test\LoadRequest.zip.part", true);
+                // Arrange
+                LoadRequest loadRequest = new("https://www.learningcontainer.com/download/sample-large-zip-file/?wpdmdl=1639&refresh=6634d2642fcb31714737764", new()
+                {
+                    DestinationPath = TestDirectory,
+                    Filename = "LoadRequest.zip",
+                    MinReloadSize = 1000,
+                    WriteMode = DownloadAssistant.Options.WriteMode.Append,
+                });
+
+                bool isCompleted = false;
+                loadRequest.StateChanged += (sender, e) =>
+                {
+                    if (e == RequestState.Compleated)
+                    {
+                        isCompleted = true;
+                    }
+                };
+
+                // Act
+                await loadRequest.Task;
+                // Assert
+                //Assert.IsTrue(isCompleted, "The request should complete successfully.");
+                Assert.IsTrue(File.Exists(Path.Combine(TestDirectory, "LoadRequest.zip")), "The file should be downloaded.");
+            }
+
+            [TestMethod]
+            public async Task PartialRequest_ShouldCompleteSuccessfully()
+            {
+                // Arrange
+                RequestHandler.MainRequestHandlers[0].StaticDegreeOfParallelism = 3;
+                LoadRequest loadRequest = new("https://www.learningcontainer.com/download/sample-large-zip-file/?wpdmdl=1639&refresh=6634d2642fcb31714737764", new()
+                {
+                    DestinationPath = TestDirectory,
+                    Chunks = 7,
+                    MergeWhileProgress = true,
+                    WriteMode = DownloadAssistant.Options.WriteMode.AppendOrTruncate,
+                    RequestCompleated = (req, url) => Console.WriteLine($"Finished successful: {url}"),
+                });
+
+                bool isCompleted = false;
+                loadRequest.StateChanged += (sender, e) =>
+                {
+                    if (e == RequestState.Compleated)
+                    {
+                        isCompleted = true;
+                    }
+                };
+
+                // Act
+                await loadRequest.Task;
+                //await Task.Delay(10000);
+
+                // Assert
+                // Assert.IsTrue(isCompleted, "The request should complete successfully.");
+                Assert.IsTrue(File.Exists(Path.Combine(TestDirectory, "sample-large-zip-file.zip")), "The file should be downloaded.");
+            }
+
+            [TestMethod]
+            public async Task PartialRequest_WithSubsequentRequest_ShouldCompleteSuccessfully()
+            {
+                // Arrange
+                RequestHandler.MainRequestHandlers[0].StaticDegreeOfParallelism = 3;
+                OwnRequest subRequest = new(async (token) =>
+                {
+                    Console.WriteLine("Subrequest started");
+                    await Task.Delay(4000);
+                    return true;
+                }, new() { AutoStart = false });
+
+                LoadRequest loadRequest = new("https://www.learningcontainer.com/download/sample-large-zip-file/?wpdmdl=1639&refresh=6634d2642fcb31714737764", new()
+                {
+                    DestinationPath = TestDirectory,
+                    Chunks = 7,
+                    SubsequentRequest = subRequest,
+                    MergeWhileProgress = true,
+                    WriteMode = DownloadAssistant.Options.WriteMode.AppendOrTruncate,
+                    RequestCompleated = (req, url) => Console.WriteLine($"Finished successful: {url}"),
+                });
+
+                bool isCompleted = false;
+                loadRequest.StateChanged += (sender, e) =>
+                {
+                    if (e == RequestState.Compleated)
+                    {
+                        isCompleted = true;
+                    }
+                };
+
+                // Act
+                await loadRequest.Task;
+                Console.WriteLine("loadRequest finished");
+                await subRequest.Task;
+
+                // Assert
+                //Assert.IsTrue(isCompleted, "The request should complete successfully.");
+                Assert.IsTrue(File.Exists(Path.Combine(TestDirectory, "sample-large-zip-file.zip")), "The file should be downloaded.");
+            }
         }
     }
 }
