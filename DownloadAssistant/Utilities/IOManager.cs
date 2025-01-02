@@ -13,7 +13,7 @@ namespace DownloadAssistant.Utilities
         /// <summary>
         /// Array of characters that are not allowed in file names.
         /// </summary>
-        public static char[] InvalidFileNameChars = new char[]
+        public static char[] InvalidFileNameCharsWindows = new char[]
           {
             '\"', '<', '>', '|', '\0',
             (char)1, (char)2, (char)3, (char)4, (char)5, (char)6, (char)7, (char)8, (char)9, (char)10,
@@ -21,6 +21,8 @@ namespace DownloadAssistant.Utilities
             (char)21, (char)22, (char)23, (char)24, (char)25, (char)26, (char)27, (char)28, (char)29, (char)30,
             (char)31, ':', '?', '\\', '/'
           };
+
+        public static char[] InvalidFileNameCharsUnix = new char[] { '/', '\0' };
 
         /// <summary>
         /// Converts bytes to megabytes.
@@ -40,8 +42,12 @@ namespace DownloadAssistant.Utilities
         public static string RemoveInvalidFileNameChars(string name)
         {
             StringBuilder fileBuilder = new(name);
-            foreach (char c in InvalidFileNameChars)
-                fileBuilder.Replace(c.ToString(), string.Empty);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                foreach (char c in InvalidFileNameCharsWindows)
+                    fileBuilder.Replace(c.ToString(), string.Empty);
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                foreach (char c in InvalidFileNameCharsUnix)
+                    fileBuilder.Replace(c.ToString(), string.Empty);
             return fileBuilder.ToString();
         }
 
@@ -58,24 +64,32 @@ namespace DownloadAssistant.Utilities
         public static bool IsValidPath(string path) => TryGetFullPath(path, out _);
 
 
-        /// <summary>
-        /// Tries to get the absolute path for the specified path string.
-        /// </summary>
-        /// <param name="path">The file or directory for which to obtain absolute path information.</param>
-        /// <param name="result">
-        /// When this method returns, contains the absolute path representation of <paramref name="path"/>, 
-        /// if the conversion succeeded, or <see cref="string.Empty"/> if the conversion failed.
-        /// </param>
-        /// <returns>
-        /// <c>true</c> if <paramref name="path"/> was converted to an absolute path successfully; otherwise, <c>false</c>.
-        /// </returns>
         public static bool TryGetFullPath(string path, out string result)
         {
             result = string.Empty;
-            if (string.IsNullOrWhiteSpace(path) || path[1] != ':')
-                return false;
-            bool status = false;
 
+            if (string.IsNullOrWhiteSpace(path))
+                return false;
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                if (path.Length < 2 || path[1] != ':')
+                    return false;
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                char[] invalidChars = Path.GetInvalidPathChars();
+                if (path.IndexOfAny(invalidChars) >= 0)
+                    return false;
+
+                if (Encoding.UTF8.GetByteCount(path) > 4096)
+                    return false;
+
+                if (!path.StartsWith("/") && !path.StartsWith("./") && !path.StartsWith("../"))
+                    return false;
+            }
+
+            bool status = false;
             try
             {
                 result = Path.GetFullPath(path);
@@ -97,9 +111,11 @@ namespace DownloadAssistant.Utilities
         /// <exception cref="SecurityException">Thrown when the caller does not have the required permission to perform this operation.</exception>
         public static string? GetHomePath()
         {
-            if (Environment.OSVersion.Platform == PlatformID.Unix)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                return Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 return Environment.GetEnvironmentVariable("HOME");
-            return Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
+            throw new PlatformNotSupportedException("The platform is not supported.");
         }
 
         /// <summary>
@@ -112,14 +128,7 @@ namespace DownloadAssistant.Utilities
         /// <exception cref="SecurityException">Thrown when the caller does not have the required permission to perform this operation.</exception>
         public static string? GetDownloadFolderPath()
         {
-            if (Environment.OSVersion.Platform == PlatformID.Unix)
-            {
-                string? homePath = GetHomePath();
-                if (string.IsNullOrEmpty(homePath))
-                    return null;
-                return Path.Combine(homePath, "Downloads");
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 string path = SHGetKnownFolderPath(new("374DE290-123F-4565-9164-39C4925E467B"), 0);
                 if (string.IsNullOrEmpty(path))
@@ -129,6 +138,13 @@ namespace DownloadAssistant.Utilities
                         , "{374DE290-123F-4565-9164-39C4925E467B}"
                         , string.Empty));
                 else return path;
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                string? homePath = Environment.GetEnvironmentVariable("HOME");
+                if (string.IsNullOrEmpty(homePath))
+                    return null;
+                return Path.Combine(homePath, "Downloads");
             }
             else return null;
         }
