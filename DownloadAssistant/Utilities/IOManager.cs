@@ -130,7 +130,13 @@ namespace DownloadAssistant.Utilities
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                string path = SHGetKnownFolderPath(new("374DE290-123F-4565-9164-39C4925E467B"), 0);
+                string? path = null;
+                try
+                {
+                    path = SHGetKnownFolderPath(new("374DE290-123F-4565-9164-39C4925E467B"), 0);
+                }
+                catch { }
+
                 if (string.IsNullOrEmpty(path))
                     return Convert.ToString(
                     Registry.GetValue(
