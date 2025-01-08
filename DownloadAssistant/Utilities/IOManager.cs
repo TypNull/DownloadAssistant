@@ -124,7 +124,6 @@ namespace DownloadAssistant.Utilities
         /// <returns>The path to the downloads folder, or <c>null</c> if the path cannot be determined.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the home path is null or an empty string on Unix platforms.</exception>
         /// <exception cref="ArgumentException">Thrown when the path to the downloads folder is not of the correct format.</exception>
-        /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
         /// <exception cref="SecurityException">Thrown when the caller does not have the required permission to perform this operation.</exception>
         public static string? GetDownloadFolderPath()
         {
@@ -134,16 +133,22 @@ namespace DownloadAssistant.Utilities
                 try
                 {
                     path = SHGetKnownFolderPath(new("374DE290-123F-4565-9164-39C4925E467B"), 0);
+                    if (!string.IsNullOrEmpty(path))
+                        return path;
                 }
                 catch { }
 
-                if (string.IsNullOrEmpty(path))
-                    return Convert.ToString(
-                    Registry.GetValue(
-                         @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
-                        , "{374DE290-123F-4565-9164-39C4925E467B}"
-                        , string.Empty));
-                else return path;
+                try
+                {
+                    path = Convert.ToString(
+                     Registry.GetValue(
+                          @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
+                         , "{374DE290-123F-4565-9164-39C4925E467B}"
+                         , string.Empty));
+                }
+                catch { }
+
+                return string.IsNullOrEmpty(path) ? null : path;
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
