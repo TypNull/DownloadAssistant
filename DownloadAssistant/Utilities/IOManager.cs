@@ -130,13 +130,14 @@ namespace DownloadAssistant.Utilities
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 string? path = null;
+
                 try
                 {
                     path = SHGetKnownFolderPath(new("374DE290-123F-4565-9164-39C4925E467B"), 0);
                     if (!string.IsNullOrEmpty(path))
                         return path;
                 }
-                catch { }
+                catch (Exception) { }
 
                 try
                 {
@@ -146,7 +147,25 @@ namespace DownloadAssistant.Utilities
                          , "{374DE290-123F-4565-9164-39C4925E467B}"
                          , string.Empty));
                 }
-                catch { }
+                catch (Exception) { }
+
+                IKnownFolderManager? knownFolderManager = null;
+                IKnownFolder? knownFolder = null;
+                try
+                {
+                    if (Type.GetTypeFromCLSID(new Guid("4DF0C730-DF9D-4AE3-9153-AA6B82E9795A")) is Type comClass && Activator.CreateInstance(comClass) is IKnownFolderManager manager)
+                        knownFolderManager = manager;
+                    knownFolderManager?.GetFolderByName("Downloads", out knownFolder);
+                    knownFolder?.GetPath(0, out path);
+                    if (!string.IsNullOrEmpty(path))
+                        return path;
+                }
+                catch (Exception) { }
+                finally
+                {
+                    if (knownFolder != null) Marshal.ReleaseComObject(knownFolder);
+                    if (knownFolderManager != null) Marshal.ReleaseComObject(knownFolderManager);
+                }
 
                 return string.IsNullOrEmpty(path) ? null : path;
             }
@@ -166,6 +185,15 @@ namespace DownloadAssistant.Utilities
         [MarshalAs(UnmanagedType.LPStruct)] Guid rfid, uint dwFlags,
         nint hToken = 0);
 
+        [ComImport]
+        [Guid("8BE2D872-86AA-4D47-B776-32CCA40C7018")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IKnownFolderManager { void GetFolderByName(string canonicalName, out IKnownFolder knownFolder); }
+
+        [ComImport]
+        [Guid("3AA7AF7E-9B36-420C-A8E3-F77D4674A488")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IKnownFolder { void GetPath(int flags, [MarshalAs(UnmanagedType.LPWStr)] out string path); }
 
         /// <summary>
         /// Moves a file to a new location, overwriting the existing file if it exists.
