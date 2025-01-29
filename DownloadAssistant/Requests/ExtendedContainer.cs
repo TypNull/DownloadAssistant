@@ -13,12 +13,22 @@ namespace DownloadAssistant.Requests
         /// </summary>
         public Progress<float> Progress => _progress;
         private readonly CombinableProgress _progress = new();
+        /// <summary>
+        /// Gets a read-only list of individual progress reporters for each request.
+        /// </summary>
+        public IReadOnlyList<Progress<float>> IndividualProgressReporters => _progress.Progressors;
+
 
         /// <summary>
         /// Merged speed reporter of all requests.
         /// </summary>
         public SpeedReporter<long> SpeedReporter => _speedReporter;
         private readonly CombinableSpeedReporter _speedReporter = new();
+
+        /// <summary>
+        /// Gets a read-only list of individual speed reporters for each request.
+        /// </summary>
+        public IReadOnlyList<SpeedReporter<long>> IndividualSpeedReporters => _speedReporter.SpeedReporters;
 
         /// <summary>
         /// Main constructor for <see cref="ExtendedContainer{TRequest}"/>.
@@ -50,7 +60,7 @@ namespace DownloadAssistant.Requests
         public override void AddRange(params TRequest[] requests)
         {
             base.AddRange(requests);
-            foreach (var request in requests)
+            foreach (TRequest request in requests)
             {
                 AttachProgress(request);
                 AttachSpeedReporter(request);
@@ -76,7 +86,7 @@ namespace DownloadAssistant.Requests
         public override void Remove(params TRequest[] requests)
         {
             base.Remove(requests);
-            foreach (var request in requests)
+            foreach (TRequest request in requests)
             {
                 if (request is IProgressableRequest progressable && progressable.Progress != null)
                     _progress?.TryRemove(progressable.Progress);
@@ -99,6 +109,11 @@ namespace DownloadAssistant.Requests
             /// Gets the count of attached <see cref="SpeedReporter{T}"/> instances.
             /// </summary>
             public int Count => _speedReporters.Count;
+
+            /// <summary>
+            /// Gets a read-only list of attached speed reporters.
+            /// </summary>
+            public IReadOnlyList<SpeedReporter<long>> SpeedReporters => _speedReporters;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="CombinableSpeedReporter"/> class.
@@ -192,6 +207,11 @@ namespace DownloadAssistant.Requests
             /// Gets the count of attached <see cref="Progress{T}"/> instances.
             /// </summary>
             public int Count => _progressors.Count;
+
+            /// <summary>
+            /// Gets a read-only list of attached progress reporters.
+            /// </summary>
+            public IReadOnlyList<Progress<float>> Progressors => _progressors;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="CombinableProgress"/> class.
