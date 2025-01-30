@@ -1,10 +1,14 @@
 ﻿using Requests;
-using System.Net;
+using System.Net.Security;
+using System.Security.Authentication;
 
 namespace DownloadAssistant.Base
 {
     public partial class HttpGet
     {
+        private static readonly object _lockObject = new();
+        private static HttpClient? _httpClient;
+
         /// <summary>
         /// The primary instance of <see cref="System.Net.Http.HttpClient"/>. 
         /// This instance is used to manage HttpRequests for the <see cref="IRequest"/> that utilize it.
@@ -13,44 +17,25 @@ namespace DownloadAssistant.Base
         {
             get
             {
-                // If the HttpClient is already initialized, return the existing instance
-                if (_initialized)
-                    return _httpClient;
-
-                // Initialize the HttpClient
-                _initialized = true;
-
-                // Create a new SocketsHttpHandler with specific settings
-                SocketsHttpHandler socketsHandler = new()
-                {
-                    PooledConnectionLifetime = TimeSpan.FromMinutes(10),
-                    PooledConnectionIdleTimeout = TimeSpan.FromMinutes(5),
-                    MaxConnectionsPerServer = 10
-                };
-
-                // Assign the handler to the HttpClient
-                _httpClient = new(socketsHandler);
-
-                // Set the security protocol types for the ServicePointManager
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
-
-                // Set the timeout for the HttpClient
-                _httpClient.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
-
-                // Add a user agent header to the HttpClient
-                _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.3");
-
-                // Return the initialized HttpClient
+                if (_httpClient == null)
+                    lock (_lockObject) _httpClient ??= CreateHttpClient();
                 return _httpClient;
             }
-            // Allow the HttpClient to be set externally
-            set => _httpClient = value;
         }
 
-        // Private field to hold the HttpClient instance
-        private static HttpClient _httpClient = HttpClient;
+        private static HttpClient CreateHttpClient()
+        {
+            SocketsHttpHandler handler = new()
+            {
+                PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+                PooledConnectionIdleTimeout = TimeSpan.FromMinutes(5),
+                MaxConnectionsPerServer = 10,
+                SslOptions = new SslClientAuthenticationOptions { EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13 }
+            };
 
-        // Flag to indicate whether the HttpClient has been initialized
-        private static bool _initialized;
+            HttpClient client = new(handler, disposeHandler: true) { Timeout = TimeSpan.FromSeconds(100) };
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgentBuilder.Generate());
+            return client;
+        }
     }
 }
