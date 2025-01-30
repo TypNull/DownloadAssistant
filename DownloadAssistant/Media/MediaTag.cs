@@ -1,63 +1,64 @@
 ﻿namespace DownloadAssistant.Media
 {
+
     /// <summary>
-    /// Enum representing the media type of a web file.
+    /// Represents core media type categories
     /// </summary>
     public enum MediaType
     {
         /// <summary>
-        /// Represents a non-media file.
-        /// </summary>
-        NoMedia,
-
-        /// <summary>
-        /// Represents video and movie files, such as .mp4 or .avi.
-        /// </summary>
-        Video,
-
-        /// <summary>
-        /// Represents audio and music files, such as .mp3 or .wav.
-        /// </summary>
-        Audio,
-
-        /// <summary>
-        /// Represents binary data that require an application to interpret, such as .exe or .dll.
-        /// </summary>
-        Application,
-
-        /// <summary>
-        /// Represents readable text files, such as .txt or .docx.
-        /// </summary>
-        Text,
-
-        /// <summary>
-        /// Represents graphical data formats, such as .jpg or .png.
+        /// Visual image formats (e.g., JPEG, PNG, GIF)
         /// </summary>
         Image,
 
         /// <summary>
-        /// Represents font or typeface files, such as .ttf or .otf.
+        /// Video container formats (e.g., MP4, AVI, MKV)
+        /// </summary>
+        Video,
+
+        /// <summary>
+        /// Audio file formats (e.g., MP3, WAV, AAC)
+        /// </summary>
+        Audio,
+
+        /// <summary>
+        /// Text-based formats (e.g., TXT, HTML, CSV)
+        /// </summary>
+        Text,
+
+        /// <summary>
+        /// Executable and binary formats (e.g., EXE, DLL, APK)
+        /// </summary>
+        Application,
+
+        /// <summary>
+        /// Font resource formats (e.g., TTF, OTF, WOFF)
         /// </summary>
         Font,
 
         /// <summary>
-        /// Represents model data used to create 2D or 3D scenes, such as .obj or .fbx.
+        /// Archive and compression formats (e.g., ZIP, RAR, 7Z)
         /// </summary>
-        Model,
+        Archive,
 
         /// <summary>
-        /// Represents data with multiple media types, such as .html or .xml.
-        /// </summary>
-        Multipart,
-
-        /// <summary>
-        /// Represents email and messaging formats, such as .eml or .msg.
+        /// Email and messaging formats (e.g., .eml, .msg)
         /// </summary>
         Message,
 
         /// <summary>
-        /// Represents a media type that is unknown or not recognized.
+        /// 3D model formats (e.g., .obj, .stl, .fbx)
         /// </summary>
-        Unknown,
+        Model,
+
+        /// <summary>
+        /// Multipart document formats (e.g., multipart/form-data)
+        /// </summary>
+        Multipart,
+
+        /// <summary>
+        /// Unknown or unclassified formats
+        /// </summary>
+        Unknown
     }
 }

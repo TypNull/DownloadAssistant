@@ -1,34 +1,36 @@
-﻿namespace DownloadAssistant.Media
+﻿using System.Globalization;
+
+namespace DownloadAssistant.Media
 {
     /// <summary>
-    /// Represents the type of a <see cref="WebItem"/>.
+    /// Represents the type of a <see cref="WebItem"/> with comprehensive media type analysis.
     /// </summary>
     public record WebType
     {
         /// <summary>
-        /// Gets the media type of this instance.
+        /// Gets the media type classification of this instance.
         /// </summary>
         public MediaType MediaType { get; private set; }
 
         /// <summary>
-        /// Gets the file extension associated with this type.
+        /// Gets the standard file extension associated with this media type.
         /// </summary>
         public string Extension { get; private set; } = string.Empty;
 
         /// <summary>
-        /// Gets the raw string representation of this type.
+        /// Gets the raw MIME type string representation.
         /// </summary>
         public string Raw { get; private set; }
 
         /// <summary>
-        /// Gets the full type, including the main and sub parts.
+        /// Gets the complete MIME type including main and sub type parts.
         /// </summary>
         public string FullType { get; private set; } = string.Empty;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WebType"/> class.
         /// </summary>
-        /// <param name="rawText">The raw text type to parse.</param>
+        /// <param name="rawText">The raw MIME type string to parse.</param>
         public WebType(string rawText)
         {
             Raw = rawText;
@@ -38,36 +40,52 @@
         }
 
         /// <summary>
-        /// Converts the raw media type into a <see cref="MediaType"/> and determines the file extension.
+        /// Converts the raw MIME type into a structured media type representation.
         /// </summary>
         private void Convert()
         {
             string[] splitted = Raw.Split('/');
             if (splitted.Length < 1)
                 return;
-            string mediaType = splitted[0].ToLower().Trim();
 
-            Extension = splitted[1].ToLower().Trim();
-            FullType = mediaType + "/" + Extension;
-            if (FullType is "text/plain" or "application/octet-stream")
-                MediaType = MediaType.Unknown;
-            else if (Enum.TryParse(string.Concat(mediaType[0].ToString().ToUpper(), mediaType[1..]), out MediaType typ))
-                MediaType = typ;
-            else
-                MediaType = MediaType.NoMedia;
-            if (FullType == "link/url")
-                IsLink = true;
+            string mediaType = splitted[0].ToLower().Trim();
+            string subType = splitted.Length > 1 ? splitted[1].ToLower().Trim() : "octet-stream";
+
+            Extension = subType;
+            FullType = $"{mediaType}/{subType}";
+
+            MediaType = FullType switch
+            {
+                "text/plain" or "application/octet-stream" => MediaType.Unknown,
+                "application/zip" or "application/x-rar-compressed"
+                    or "application/x-7z-compressed" => MediaType.Archive,
+                _ when Enum.TryParse(CultureInfo.CurrentCulture.TextInfo.ToTitleCase(mediaType), out MediaType type)
+                    => type,
+                _ => MediaType.Unknown
+            };
+
+            IsLink = FullType == "link/url";
         }
 
         /// <summary>
-        /// Gets a value indicating whether this type represents a media file.
+        /// Gets a value indicating whether this type represents any media content.
         /// </summary>
-        public bool IsMedia => MediaType != MediaType.NoMedia;
+        public bool IsMedia => MediaType != MediaType.Unknown;
 
         /// <summary>
-        /// Gets a value indicating whether this type represents a link.
+        /// Gets a value indicating whether this type represents non-media content.
         /// </summary>
-        public bool IsLink { get; private set; } = false;
+        public bool IsNoMedia => MediaType == MediaType.Unknown;
+
+        /// <summary>
+        /// Gets a value indicating whether this type represents an archive file.
+        /// </summary>
+        public bool IsArchive => MediaType == MediaType.Archive;
+
+        /// <summary>
+        /// Gets a value indicating whether this type represents a hyperlink reference.
+        /// </summary>
+        public bool IsLink { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether this type represents an application file.
@@ -75,7 +93,7 @@
         public bool IsApplication => MediaType == MediaType.Application;
 
         /// <summary>
-        /// Gets a value indicating whether this type represents a font file.
+        /// Gets a value indicating whether this type represents a font resource.
         /// </summary>
         public bool IsFont => MediaType == MediaType.Font;
 
@@ -85,22 +103,22 @@
         public bool IsImage => MediaType == MediaType.Image;
 
         /// <summary>
-        /// Gets a value indicating whether this type represents a message file.
+        /// Gets a value indicating whether this type represents a message container.
         /// </summary>
         public bool IsMessage => MediaType == MediaType.Message;
 
         /// <summary>
-        /// Gets a value indicating whether this type represents a model.
+        /// Gets a value indicating whether this type represents a 3D model file.
         /// </summary>
         public bool IsModel => MediaType == MediaType.Model;
 
         /// <summary>
-        /// Gets a value indicating whether this type represents a multipart file.
+        /// Gets a value indicating whether this type represents a multipart document.
         /// </summary>
         public bool IsMultipart => MediaType == MediaType.Multipart;
 
         /// <summary>
-        /// Gets a value indicating whether this type represents a text file.
+        /// Gets a value indicating whether this type represents a text document.
         /// </summary>
         public bool IsText => MediaType == MediaType.Text;
 
@@ -115,7 +133,7 @@
         public bool IsVideo => MediaType == MediaType.Video;
 
         /// <summary>
-        /// Gets a value indicating whether the <see cref="MediaType"/> is unknown.
+        /// Gets a value indicating whether the media type is unrecognized.
         /// </summary>
         public bool IsUnknown => MediaType == MediaType.Unknown;
     }
