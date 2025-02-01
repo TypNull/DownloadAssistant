@@ -25,10 +25,7 @@ namespace DownloadAssistant.Base
         /// <param name="architecture">System architecture information</param>
         /// <param name="deviceModel">Device model information (optional)</param>
         /// <returns>Complete User-Agent string with all placeholders replaced</returns>
-        private static string ComposeUserAgent(
-            PlatformTemplate template,
-            string architecture,
-            string deviceModel = "")
+        private static string ComposeUserAgent(PlatformTemplate template, string architecture, string deviceModel = "")
         {
             const string chromeVersion = "124.0.6367.79";
             const string webKitToken = "AppleWebKit/537.36 (KHTML, like Gecko)";
@@ -55,14 +52,11 @@ namespace DownloadAssistant.Base
         /// <param name="format">String containing placeholders</param>
         /// <param name="values">Dictionary of placeholder-value pairs</param>
         /// <returns>Formatted string with replaced values</returns>
-        private static string ReplaceNamedPlaceholders(
-            string format,
-            IReadOnlyDictionary<string, object> values)
+        private static string ReplaceNamedPlaceholders(string format, IReadOnlyDictionary<string, object> values)
         {
             foreach (KeyValuePair<string, object> kvp in values)
-            {
                 format = format.Replace(kvp.Key, kvp.Value.ToString() ?? string.Empty);
-            }
+
             return format;
         }
 
@@ -79,9 +73,7 @@ namespace DownloadAssistant.Base
         /// <param name="osPlatform">Target operating system platform</param>
         /// <param name="osVersion">Operating system version</param>
         /// <returns>Platform-specific User-Agent template</returns>
-        private static PlatformTemplate GetPlatformTemplate(
-            OSPlatform osPlatform,
-            Version osVersion)
+        private static PlatformTemplate GetPlatformTemplate(OSPlatform osPlatform, Version osVersion)
         {
             Dictionary<OSPlatform, Func<Version, PlatformTemplate>> templates = new()
             {
@@ -174,17 +166,13 @@ namespace DownloadAssistant.Base
         /// Determines if the current OS is Android
         /// </summary>
         /// <returns>True if running on Android, false otherwise</returns>
-        private static bool IsAndroid() =>
-            RuntimeInformation.OSDescription.Contains("Android", StringComparison.OrdinalIgnoreCase) ||
-            Environment.OSVersion.VersionString.Contains("Android");
+        private static bool IsAndroid() => RuntimeInformation.OSDescription.Contains("Android", StringComparison.OrdinalIgnoreCase) || Environment.OSVersion.VersionString.Contains("Android");
 
         /// <summary>
         /// Determines if the current OS is Tizen
         /// </summary>
         /// <returns>True if running on Tizen, false otherwise</returns>
-        private static bool IsTizen() =>
-            RuntimeInformation.OSDescription.Contains("Tizen", StringComparison.OrdinalIgnoreCase) ||
-            Environment.OSVersion.VersionString.Contains("Tizen");
+        private static bool IsTizen() => RuntimeInformation.OSDescription.Contains("Tizen", StringComparison.OrdinalIgnoreCase) || Environment.OSVersion.VersionString.Contains("Tizen");
 
         /// <summary>
         /// Attempts to retrieve the Android device model

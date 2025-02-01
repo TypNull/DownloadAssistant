@@ -39,7 +39,6 @@ namespace DownloadAssistant.Base
         /// </summary>
         public CancellationToken Token { get; init; }
 
-
         /// <summary>
         /// Gets the exception if the HEAD request failed.
         /// </summary>
@@ -103,7 +102,7 @@ namespace DownloadAssistant.Base
             catch (Exception ex)
             {
                 HeadRequestException = new NotSupportedException("The length of the content could not be loaded, because the requested server does not support this function.", ex);
-                Debug.Assert(false, ex.Message);
+                Debug.Fail(ex.Message);
             }
             if (!Range.IsEmpty && length > 0)
                 SetRange(length);
@@ -111,17 +110,47 @@ namespace DownloadAssistant.Base
         }
 
         /// <summary>
-        /// Retrieves the content length from the server.
+        /// Retrieves content length with HEAD request fallback to partial GET
         /// </summary>
         /// <returns>The content length.</returns>
-        private long GetContentLength()
+        private long GetContentLength() => GetContentLengthViaHead() ?? GetContentLengthViaPartialGet() ?? 0;
+
+        /// <summary>
+        /// Gets content length using HEAD request
+        /// </summary>
+        private long? GetContentLengthViaHead()
         {
-            HttpRequestMessage msg = CloneRequestMessage(_originalMessage);
-            msg.Method = HttpMethod.Head;
-            HttpResponseMessage res = HttpClient.Send(msg, TimedTokenOrDefault());
-            if (res.IsSuccessStatusCode)
-                return res.Content.Headers.ContentLength ?? 0;
-            return 0;
+            try
+            {
+                using HttpRequestMessage msg = CloneRequestMessage(_originalMessage);
+                msg.Method = HttpMethod.Head;
+                using HttpResponseMessage response = HttpClient.Send(msg, TimedTokenOrDefault());
+                response.EnsureSuccessStatusCode();
+                return response.Content.Headers.ContentLength ?? response.Content.Headers.ContentRange?.Length;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// Gets content length using range request fallback
+        /// </summary>
+
+        private long? GetContentLengthViaPartialGet()
+        {
+            LoadRange originalRange = _range;
+            try
+            {
+                _range = new LoadRange(0, 0);
+                using HttpRequestMessage msg = CloneRequestMessage(_originalMessage);
+                msg.Headers.Range = new RangeHeaderValue(0, 0);
+
+                using HttpResponseMessage response = HttpClient.Send(msg, TimedTokenOrDefault());
+                response.EnsureSuccessStatusCode();
+
+                return response.Content.Headers.ContentRange?.Length ?? response.Content.Headers.ContentLength;
+            }
+            catch { return null; }
+            finally { _range = originalRange; }
         }
 
         /// <summary>
@@ -130,6 +159,8 @@ namespace DownloadAssistant.Base
         /// <returns>The response message.</returns>
         public async Task<HttpResponseMessage> LoadResponseAsync()
         {
+            if (_disposed)
+                throw new ObjectDisposedException(GetType().FullName);
             if (!IsLengthSet(out HttpResponseMessage res))
                 return res;
 

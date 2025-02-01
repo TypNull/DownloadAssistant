@@ -1,7 +1,7 @@
 ﻿[![NuGet](https://img.shields.io/nuget/vpre/Shard.DownloadAssistant)](https://www.nuget.org/packages/Shard.DownloadAssistant) [![Downloads](https://img.shields.io/nuget/dt/Shard.DownloadAssistant)](https://www.nuget.org/packages/Shard.DownloadAssistant) [![License](https://img.shields.io/github/license/typnull/DownloadAssistant.svg)](https://github.com/typnull/downloadassistant/blob/master/LICENSE.txt) ![Maintainability](https://img.shields.io/badge/Maintainability%20Index-85%25-brightgreen)
 # DownloadAssistant
 
-Introducing the Download Assistant Library for .Net 6.0! 🚀
+Introducing the Download Assistant Library for .Net! 🚀
 
 Looking for a powerful tool to effortlessly manage your download requests? Look no further! 🙌
 

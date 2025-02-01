@@ -6,23 +6,26 @@ using System.Web;
 namespace DownloadAssistant.Media
 {
     /// <summary>
-    /// Provides file metadata extraction and sanitization capabilities for downloaded content.
+    /// Provides file name extraction and sanitization capabilities for downloaded content.
     /// </summary>
-    public class FileMetadata
+    public class FileNameExtractor
+
     {
         private readonly HttpContentHeaders _headers;
         private readonly Uri _uri;
 
         private static readonly string[] DispositionHeaders = { /* IETF Standard */ "Content-Disposition", "X-Content-Disposition" };
 
-        private static readonly string[] FilenameHeaders ={ 
+        private static readonly string[] FilenameHeaders =
+        { 
             /* Cloud Provider Headers */  "X-Amz-Meta-Filename", "x-ms-meta-Filename", "X-Google-Filename",   
             /* Framework Headers */ "X-Django-FileName", "X-File-Key",    
             /* CDN/Proxy Headers */ "X-Original-Filename", "X-Source-Filename",
             /* Common Industry Headers */ "X-Filename","X-File-Name", "X-Object-Name"
         };
 
-        private static readonly string[] RedirectHeaders = { 
+        private static readonly string[] RedirectHeaders =
+        { 
             /* RFC 7231 Standard */ "Location",
             /* Nginx */ "X-Accel-Redirect",
             /* Apache */ "X-Sendfile"
@@ -57,7 +60,7 @@ namespace DownloadAssistant.Media
         /// </summary>
         /// <param name="headers">HTTP content headers from the response.</param>
         /// <param name="uri">Source URI of the downloaded content.</param>
-        public FileMetadata(HttpContentHeaders headers, Uri uri)
+        public FileNameExtractor(HttpContentHeaders headers, Uri uri)
         {
             _headers = headers;
             _uri = uri;
@@ -68,12 +71,8 @@ namespace DownloadAssistant.Media
         /// <summary>
         /// Determines the file extension from Content-Type header or URI path.
         /// </summary>
-        private void SetExtension()
-        {
-            Extension = _headers.ContentType?.MediaType != null
-                ? MimeTypeMap.GetDefaultExtension(_headers.ContentType.MediaType)
-                : Path.GetExtension(_uri.AbsoluteUri);
-        }
+        private void SetExtension() => Extension = _headers.ContentType?.MediaType != null ? MimeTypeMap.GetDefaultExtension(_headers.ContentType.MediaType) : Path.GetExtension(_uri.AbsoluteUri);
+
 
         /// <summary>
         /// Main filename determination workflow with fallback strategies.
@@ -155,14 +154,12 @@ namespace DownloadAssistant.Media
         /// Coordinates multiple alternate filename discovery strategies.
         /// </summary>
         /// <returns>Valid filename or null if not found.</returns>
-        private string? GetFilenameFromAlternateSources()
-        {
-            return ExtractFromQueryParameters()
+        private string? GetFilenameFromAlternateSources() => ExtractFromQueryParameters()
                    ?? ExtractFromContentHeaders()
                    ?? ExtractFromRedirectHeaders()
                    ?? ExtractFromCustomHeaders()
                    ?? ExtractFromContentType();
-        }
+
 
         /// <summary>
         /// Extracts filename from content-related headers (Content-Location, etc.).
@@ -243,7 +240,7 @@ namespace DownloadAssistant.Media
                     return Path.GetFileName(decoded).Trim();
                 }
             }
-            catch { /* Log error if needed */ }
+            catch { }
             return null;
         }
 
@@ -301,9 +298,7 @@ namespace DownloadAssistant.Media
             string baseName = Path.GetFileNameWithoutExtension(cleanName);
 
             int allowedBaseLength = maxLength - extension.Length;
-            return allowedBaseLength <= 0
-                ? cleanName[..maxLength]
-                : $"{baseName[..allowedBaseLength]}{extension}";
+            return allowedBaseLength <= 0 ? cleanName[..maxLength] : $"{baseName[..allowedBaseLength]}{extension}";
         }
 
         /// <summary>

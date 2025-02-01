@@ -21,6 +21,7 @@ namespace DownloadAssistant.Base
                     lock (_lockObject) _httpClient ??= CreateHttpClient();
                 return _httpClient;
             }
+            set => _httpClient = value;
         }
 
         private static HttpClient CreateHttpClient()

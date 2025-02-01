@@ -254,7 +254,7 @@ namespace DownloadAssistant.Requests
         /// <param name="res">The HTTP response message.</param>
         private void SetFileInfo(HttpResponseMessage res)
         {
-            FileMetadata fileData = new(res.Content.Headers, _uri);
+            FileNameExtractor fileData = new(res.Content.Headers, _uri);
             Filename = fileData.BuildFilename(Options.Filename);
             FilePath = Path.Combine(Options.DirectoryPath, Filename);
             ContentName = Path.GetFileNameWithoutExtension(Filename);

@@ -10,7 +10,7 @@
     <PackageProjectUrl></PackageProjectUrl>
     <PackageIcon>logo.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Version>1.0.9</Version>
+    <Version>1.1.0</Version>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <Description>A free to use library as a download manager.
 Includes retry, priority, cancel, etc.. function.
@@ -26,7 +26,10 @@ Features:
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <Company>Shard</Company>
     <Authors>Meyn</Authors>
-    <PackageReleaseNotes>Improved handling and falback for retrieving Downloads folder path on Windows</PackageReleaseNotes>
+    <PackageReleaseNotes>Easier access to individual progress and speed reporter
+Update HttpClient and User Agent Generation
+Enhance StatusRequest to Parse Additional Data
+Update SiteRequest</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/TypNull/DownloadAssistant</RepositoryUrl>
   </PropertyGroup>
 
@@ -47,6 +50,21 @@ Features:
 
   <ItemGroup>
     <PackageReference Include="Shard.Requests" Version="2.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Media\MimeTypes.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>MimeTypes.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Media\MimeTypes.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>MimeTypes.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
