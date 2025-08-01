@@ -1,77 +1,81 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFrameworks>net6.0;net7.0;net8.0;</TargetFrameworks>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <Title>DownloadAssistant</Title>
-    <PackageId>Shard.DownloadAssistant</PackageId>
-    <Copyright>Shard © 2025</Copyright>
-    <PackageProjectUrl></PackageProjectUrl>
-    <PackageIcon>logo.png</PackageIcon>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Version>1.1.0</Version>
-    <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <Description>A free to use library as a download manager.
-Includes retry, priority, cancel, etc.. function.
+	<PropertyGroup>
+		<TargetFrameworks>net6.0;net7.0;net8.0;</TargetFrameworks>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<Title>DownloadAssistant</Title>
+		<PackageId>Shard.DownloadAssistant</PackageId>
+		<Copyright>Shard © 2025</Copyright>
+		<PackageProjectUrl></PackageProjectUrl>
+		<PackageIcon>logo.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<Version>1.1.1</Version>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<Description>
+			A free to use library as a download manager.
+			Includes retry, priority, cancel, etc.. function.
 
-Features:
-   • StatusRequest: Calls a Head request and returns a response message with the headers.
-   • SiteRequest: Scans a website for all references.
-   • GetRequest: To download the response into a file.
-   • LoadRequest: Extends GetRequest with chunked download.</Description>
-    <RepositoryType>git</RepositoryType>
-    <PackageTags>request, FreeToUse, HttpClient, producer-consumer, file-downloader, downloader, chunk, http</PackageTags>
-    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <Company>Shard</Company>
-    <Authors>Meyn</Authors>
-    <PackageReleaseNotes>Easier access to individual progress and speed reporter
-Update HttpClient and User Agent Generation
-Enhance StatusRequest to Parse Additional Data
-Update SiteRequest</PackageReleaseNotes>
-    <RepositoryUrl>https://github.com/TypNull/DownloadAssistant</RepositoryUrl>
-  </PropertyGroup>
+			Features:
+			• StatusRequest: Calls a Head request and returns a response message with the headers.
+			• SiteRequest: Scans a website for all references.
+			• GetRequest: To download the response into a file.
+			• LoadRequest: Extends GetRequest with chunked download.
+		</Description>
+		<RepositoryType>git</RepositoryType>
+		<PackageTags>request, FreeToUse, HttpClient, producer-consumer, file-downloader, downloader, chunk, http</PackageTags>
+		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+		<Company>Shard</Company>
+		<Authors>Meyn</Authors>
+		<PackageReleaseNotes>
+			Easier access to individual progress and speed reporter
+			Update HttpClient and User Agent Generation
+			Enhance StatusRequest to Parse Additional Data
+			Update SiteRequest
+		</PackageReleaseNotes>
+		<RepositoryUrl>https://github.com/TypNull/DownloadAssistant</RepositoryUrl>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <None Include="..\LICENSE.txt">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Include="..\logo.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Include="..\README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
+	<ItemGroup>
+		<None Include="..\LICENSE.txt">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\logo.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Shard.Requests" Version="2.2.1" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Shard.Requests" Version="2.2.1" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Compile Update="Media\MimeTypes.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>MimeTypes.resx</DependentUpon>
-    </Compile>
-  </ItemGroup>
+	<ItemGroup>
+		<Compile Update="Media\MimeTypes.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>MimeTypes.resx</DependentUpon>
+		</Compile>
+	</ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Update="Media\MimeTypes.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>MimeTypes.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-  </ItemGroup>
+	<ItemGroup>
+		<EmbeddedResource Update="Media\MimeTypes.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>MimeTypes.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+	</ItemGroup>
 
-  <ItemGroup>
-    <None Update="logo.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
+	<ItemGroup>
+		<None Update="logo.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
 
 </Project>

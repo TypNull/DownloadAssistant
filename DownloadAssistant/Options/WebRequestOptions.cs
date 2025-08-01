@@ -49,7 +49,7 @@ namespace DownloadAssistant.Options
             Timeout = options.Timeout;
             Headers = new();
             foreach (string key in options.Headers.AllKeys)
-                Headers.Add(key, Headers[key]);
+                Headers.Add(key, options.Headers[key]);
             UserAgent = options.UserAgent;
         }
     }

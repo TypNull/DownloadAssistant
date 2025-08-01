@@ -35,8 +35,12 @@ namespace DownloadAssistant.Requests
         protected HttpRequestMessage GetPresetRequestMessage(HttpRequestMessage? httpRequest = null)
         {
             httpRequest ??= new HttpRequestMessage();
-            foreach (string key in Options.Headers?.AllKeys ?? Array.Empty<string>())
-                httpRequest.Headers.Add(key, Options.Headers?[key]);
+            foreach (string key in Options.Headers.AllKeys ?? Array.Empty<string>())
+            {
+                string? headerValue = Options.Headers[key];
+                if (!string.IsNullOrEmpty(headerValue))
+                    httpRequest.Headers.TryAddWithoutValidation(key, headerValue);
+            }
 
             if (!string.IsNullOrWhiteSpace(Options.UserAgent))
                 httpRequest.Headers.Add("User-Agent", Options.UserAgent);
