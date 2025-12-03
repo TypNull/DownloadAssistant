@@ -10,7 +10,7 @@
 		<PackageProjectUrl></PackageProjectUrl>
 		<PackageIcon>logo.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<Version>1.1.1</Version>
+		<Version>1.1.2</Version>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<Description>
 			A free to use library as a download manager.
@@ -57,11 +57,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Compile Update="Media\MimeTypes.Designer.cs">
-			<DesignTime>True</DesignTime>
-			<AutoGen>True</AutoGen>
-			<DependentUpon>MimeTypes.resx</DependentUpon>
-		</Compile>
+	  <Compile Update="Media\MimeTypes.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>MimeTypes.resx</DependentUpon>
+	  </Compile>
 	</ItemGroup>
 
 	<ItemGroup>

@@ -23,7 +23,7 @@ namespace DownloadAssistant.Utilities
         /// <summary>
         /// The total number of bytes that have been written to all chunk files.
         /// </summary>
-        public long BytesDownloaded => Requests.Sum(x => x.BytesWritten);
+        public long BytesDownloaded => Requests.Where(x => x.BytesWritten >= 0).Sum(x => x.BytesWritten);
 
         /// <summary>
         /// Gets all the requests that are in the <see cref="RequestContainer"/>.
